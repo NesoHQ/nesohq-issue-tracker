@@ -3,7 +3,16 @@ import { useAuth } from '../contexts/AuthContext'
 import { useIssuesStore } from '../store/issuesStore'
 import { useToast } from '../contexts/ToastContext'
 import { getIssue, updateIssue, listRepoLabels } from '../lib/githubClient'
-import type { GitHubIssue } from '../types/github'
+import type { GitHubIssue, GitHubLabel } from '../types/github'
+
+function isColorLight(hex: string): boolean {
+  const h = hex.replace('#', '')
+  const r = parseInt(h.slice(0, 2), 16)
+  const g = parseInt(h.slice(2, 4), 16)
+  const b = parseInt(h.slice(4, 6), 16)
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255
+  return luminance > 0.6
+}
 
 interface IssueDetailPanelProps {
   repo: string
@@ -26,6 +35,7 @@ export default function IssueDetailPanel({
   const [editBody, setEditBody] = useState('')
   const [labels, setLabels] = useState<Awaited<ReturnType<typeof listRepoLabels>>>([])
   const [saving, setSaving] = useState(false)
+  const [labelsExpanded, setLabelsExpanded] = useState(true)
 
   useEffect(() => {
     if (!token || !repo) return
@@ -111,9 +121,10 @@ export default function IssueDetailPanel({
     if (!token || !issue) return
     setSaving(true)
     const prev = issue.labels
-    updateIssueLocally(repo, issueNumber, {
-      labels: labels.filter((l) => newLabels.includes(l.name)),
-    })
+    const newLabelObjs = newLabels
+      .map((name) => labels.find((l) => l.name === name) ?? issue.labels.find((l) => l.name === name))
+      .filter((l): l is GitHubLabel => !!l)
+    updateIssueLocally(repo, issueNumber, { labels: newLabelObjs })
     try {
       const updated = await updateIssue(token, repo, issueNumber, {
         labels: newLabels,
@@ -126,6 +137,47 @@ export default function IssueDetailPanel({
     } finally {
       setSaving(false)
     }
+  }
+
+  const selectedLabelNames = issue?.labels.map((l) => l.name) ?? []
+  const labelMap = new Map<string, GitHubLabel>()
+  labels.forEach((l) => labelMap.set(l.name, l))
+  issue?.labels.forEach((l) => labelMap.set(l.name, l))
+  const allLabels = Array.from(labelMap.values()).sort((a, b) => {
+    const aSel = selectedLabelNames.includes(a.name)
+    const bSel = selectedLabelNames.includes(b.name)
+    return aSel === bSel ? 0 : aSel ? -1 : 1
+  })
+
+  const labelChip = (l: GitHubLabel, isSelected: boolean) => {
+    const bgColor = `#${l.color}`
+    const isLight = isColorLight(l.color)
+    return (
+      <button
+        key={l.id}
+        type="button"
+        onClick={() => {
+          if (saving) return
+          const next = isSelected
+            ? selectedLabelNames.filter((n) => n !== l.name)
+            : [...selectedLabelNames, l.name]
+          handleLabelsChange(next)
+        }}
+        disabled={saving}
+        className={`px-2.5 py-1 rounded-md text-xs font-medium border-2 transition-all cursor-pointer disabled:opacity-50 ${
+          isSelected
+            ? 'border-white ring-2 ring-white/30'
+            : 'border-transparent hover:border-white/30'
+        }`}
+        style={{
+          backgroundColor: bgColor,
+          color: isLight ? '#1a1a1a' : '#fff',
+        }}
+        title={l.description || l.name}
+      >
+        {l.name}
+      </button>
+    )
   }
 
   if (loading || !issue) {
@@ -219,26 +271,27 @@ export default function IssueDetailPanel({
         </div>
 
         <div className="mb-4">
-          <label className="block text-xs font-semibold text-white/50 mb-1">Labels</label>
-          <select
-            multiple
-            value={issue.labels.map((l) => l.name)}
-            onChange={(e) => {
-              const selected = Array.from(
-                e.target.selectedOptions,
-                (o) => o.value
-              )
-              handleLabelsChange(selected)
-            }}
-            disabled={saving}
-            className="w-full px-2 py-1.5 rounded-md bg-white/10 border border-white/20 text-inherit"
+          <button
+            type="button"
+            onClick={() => setLabelsExpanded((v) => !v)}
+            className="flex items-center gap-2 w-full text-left text-xs font-semibold text-white/50 mb-2 hover:text-white/70 transition-colors"
           >
-            {labels.map((l) => (
-              <option key={l.id} value={l.name}>
-                {l.name}
-              </option>
-            ))}
-          </select>
+            <span
+              className={`transition-transform ${labelsExpanded ? 'rotate-90' : ''}`}
+              aria-hidden
+            >
+              ›
+            </span>
+            Labels
+            {issue.labels.length > 0 && (
+              <span className="text-white/40 text-xs">({issue.labels.length} selected)</span>
+            )}
+          </button>
+          {labelsExpanded && (
+            <div className="flex flex-wrap gap-2 p-3 rounded-lg bg-white/5 border border-white/10 max-h-[140px] overflow-y-auto">
+              {allLabels.map((l) => labelChip(l, selectedLabelNames.includes(l.name)))}
+            </div>
+          )}
         </div>
       </div>
     </div>
