@@ -1,10 +1,10 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useWorkspaceStore } from '../store/workspaceStore'
 import { useIssuesStore } from '../store/issuesStore'
 import { useIssues } from '../hooks/useIssues'
 import IssuesTable from './IssuesTable'
 import IssueDetailPanel from './IssueDetailPanel'
-import CreateIssueModal from './CreateIssueModal'
 
 export default function IssuesWorkspace() {
   const { selectedRepos } = useWorkspaceStore()
@@ -20,7 +20,7 @@ export default function IssuesWorkspace() {
     repo: string
     number: number
   } | null>(null)
-  const [showCreateModal, setShowCreateModal] = useState(false)
+  const navigate = useNavigate()
 
   const issues = getFilteredIssues(selectedRepos, filters)
   const anyHasMore = selectedRepos.some((r) => hasMore[r])
@@ -63,7 +63,7 @@ export default function IssuesWorkspace() {
         </div>
         <button
           className="px-4 py-2 bg-blue-500 border-none rounded-md text-white font-medium cursor-pointer hover:bg-blue-600"
-          onClick={() => setShowCreateModal(true)}
+          onClick={() => navigate('/new')}
         >
           New issue
         </button>
@@ -101,12 +101,6 @@ export default function IssuesWorkspace() {
         </div>
       )}
 
-      {showCreateModal && (
-        <CreateIssueModal
-          onClose={() => setShowCreateModal(false)}
-          selectedRepos={selectedRepos}
-        />
-      )}
     </div>
   )
 }

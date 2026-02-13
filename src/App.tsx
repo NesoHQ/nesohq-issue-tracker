@@ -6,6 +6,7 @@ import AppShell from './components/AppShell'
 import SignInPage from './pages/SignInPage'
 import AuthCallbackPage from './pages/AuthCallbackPage'
 import WorkspacePage from './pages/WorkspacePage'
+import CreateIssuePage from './pages/CreateIssuePage'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { token } = useAuth()
@@ -29,6 +30,7 @@ function AppRoutes() {
         }
       >
         <Route index element={<WorkspacePage />} />
+        <Route path="new" element={<CreateIssuePage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
