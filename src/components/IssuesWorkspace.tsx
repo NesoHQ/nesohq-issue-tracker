@@ -27,7 +27,7 @@ export default function IssuesWorkspace() {
 
   if (selectedRepos.length === 0) {
     return (
-      <div className="py-12 text-center text-white/60">
+      <div className="py-12 text-center text-gray-500 dark:text-white/60">
         <p>Select one or more repositories from the sidebar to view issues.</p>
       </div>
     )
@@ -45,7 +45,7 @@ export default function IssuesWorkspace() {
                 state: e.target.value as 'open' | 'closed' | 'all',
               }))
             }
-            className="px-3 py-1.5 rounded-md bg-white/10 border border-white/20 text-inherit"
+            className="px-3 py-1.5 rounded-md bg-white dark:bg-white/10 border border-gray-300 dark:border-white/20 text-inherit"
           >
             <option value="all">All</option>
             <option value="open">Open</option>
@@ -70,7 +70,7 @@ export default function IssuesWorkspace() {
       </div>
 
       {loading && issues.length === 0 && (
-        <div className="p-4 text-white/70 flex items-center gap-2">
+        <div className="p-4 text-gray-600 dark:text-white/70 flex items-center gap-2">
           <span className="inline-block w-[18px] h-[18px] border-2 border-white/20 border-t-white/80 rounded-full animate-spin-slow" />
           Loading issues...
         </div>

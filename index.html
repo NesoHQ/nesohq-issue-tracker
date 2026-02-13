@@ -7,6 +7,13 @@
     <title>GitHub Issues - Notion-style</title>
   </head>
   <body>
+    <script>
+      (function() {
+        const stored = localStorage.getItem('app_theme');
+        const dark = stored === 'dark' || (!stored && window.matchMedia('(prefers-color-scheme: dark)').matches);
+        document.documentElement.classList.toggle('dark', dark);
+      })();
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

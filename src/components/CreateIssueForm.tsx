@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import MDEditor from '@uiw/react-md-editor'
 import '@uiw/react-md-editor/markdown-editor.css'
 import { useAuth } from '../contexts/AuthContext'
+import { useTheme } from '../contexts/ThemeContext'
 import { uploadImage } from '../lib/api'
 import { useIssuesStore } from '../store/issuesStore'
 import { useToast } from '../contexts/ToastContext'
@@ -42,6 +43,7 @@ export default function CreateIssueForm({
   onDraftChange,
 }: CreateIssueFormProps) {
   const { token } = useAuth()
+  const { theme } = useTheme()
   const { addIssue } = useIssuesStore()
   const { addToast } = useToast()
   const [repo, setRepo] = useState(selectedRepos[0] || '')
@@ -211,8 +213,8 @@ export default function CreateIssueForm({
         <div className="grid grid-cols-1 md:grid-cols-[1fr_220px] gap-6 flex-1 min-h-0">
           <div className="flex flex-col gap-5 min-h-0">
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-white/50 mb-2">
-                Title <span className="text-red-400">*</span>
+              <label className="block text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-white/50 mb-2">
+                Title <span className="text-red-500">*</span>
               </label>
               <div className="relative">
                 <input
@@ -232,7 +234,7 @@ export default function CreateIssueForm({
                   <span
                     id="title-count"
                     className={`absolute right-3 top-1/2 -translate-y-1/2 text-xs tabular-nums ${
-                      title.length >= TITLE_MAX ? 'text-red-400' : 'text-white/40'
+                      title.length >= TITLE_MAX ? 'text-red-500' : 'text-gray-400 dark:text-white/40'
                     }`}
                   >
                     {title.length}/{TITLE_MAX}
@@ -243,7 +245,7 @@ export default function CreateIssueForm({
 
             <div className="flex-1 flex flex-col min-h-0" style={{ minHeight: editorMinHeight }}>
               <div className="flex items-center justify-between mb-2 shrink-0">
-                <label className="block text-xs font-semibold uppercase tracking-wider text-white/50">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-white/50">
                   Description <span className="text-white/40 font-normal normal-case">(optional)</span>
                 </label>
                 <input
@@ -256,15 +258,15 @@ export default function CreateIssueForm({
                 <button
                   type="button"
                   onClick={handleImageUploadClick}
-                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs text-white/70 hover:text-white hover:bg-white/10 transition-colors"
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs text-gray-600 dark:text-white/70 hover:text-gray-900 dark:hover:text-white hover:bg-gray-200 dark:hover:bg-white/10 transition-colors"
                 >
                   <span aria-hidden>📷</span>
                   Add image
                 </button>
               </div>
               <div
-                data-color-mode="dark"
-                className="flex-1 min-h-0 rounded-lg overflow-hidden border border-white/10 [&_.w-md-editor]:bg-white/5 [&_.w-md-editor]:border-0 [&_.w-md-editor-toolbar]:bg-white/5 [&_.w-md-editor-toolbar]:border-b [&_.w-md-editor-toolbar]:border-white/10 [&_.w-md-editor-content]:bg-transparent [&_.w-md-editor-text-pre]:text-inherit [&_.w-md-editor-text-input]:text-inherit [&_.w-md-editor-text-input]:placeholder-white/30 [&_.w-md-editor-preview]:bg-white/5 [&_.w-md-editor-preview]:border-white/10"
+                data-color-mode={theme}
+                className="flex-1 min-h-0 rounded-lg overflow-hidden border border-gray-200 dark:border-white/10 [&_.w-md-editor]:bg-gray-50 [&_.w-md-editor]:dark:bg-white/5 [&_.w-md-editor]:border-0 [&_.w-md-editor-toolbar]:bg-gray-100 [&_.w-md-editor-toolbar]:dark:bg-white/5 [&_.w-md-editor-toolbar]:border-b [&_.w-md-editor-toolbar]:border-gray-200 [&_.w-md-editor-toolbar]:dark:border-white/10 [&_.w-md-editor-content]:bg-transparent [&_.w-md-editor-text-pre]:text-inherit [&_.w-md-editor-text-input]:text-inherit [&_.w-md-editor-text-input]:placeholder-gray-400 [&_.w-md-editor-text-input]:dark:placeholder-white/30 [&_.w-md-editor-preview]:bg-gray-100 [&_.w-md-editor-preview]:dark:bg-white/5 [&_.w-md-editor-preview]:border-gray-200 [&_.w-md-editor-preview]:dark:border-white/10"
               >
                 <MDEditor
                   value={body}
@@ -318,14 +320,14 @@ export default function CreateIssueForm({
 
           <div className="flex flex-col gap-5">
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-white/50 mb-2">
+              <label className="block text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-white/50 mb-2">
                 Repository
               </label>
               <select
                 value={repo}
                 onChange={(e) => setRepo(e.target.value)}
                 required
-                className="w-full px-3 py-2.5 rounded-lg bg-white/5 border border-white/10 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/60 focus:border-blue-500/40 transition-all"
+                className="w-full px-3 py-2.5 rounded-lg bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/60 focus:border-blue-500/40 transition-all"
               >
                 {selectedRepos.map((r) => (
                   <option key={r} value={r}>
@@ -340,7 +342,7 @@ export default function CreateIssueForm({
                 <button
                   type="button"
                   onClick={() => setLabelsExpanded((v) => !v)}
-                  className="flex items-center gap-2 w-full text-left text-xs font-semibold uppercase tracking-wider text-white/50 mb-2 hover:text-white/70 transition-colors"
+                  className="flex items-center gap-2 w-full text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-white/50 mb-2 hover:text-gray-700 dark:hover:text-white/70 transition-colors"
                 >
                   <span
                     className={`transition-transform ${labelsExpanded ? 'rotate-90' : ''}`}
@@ -350,10 +352,10 @@ export default function CreateIssueForm({
                   </span>
                   Labels
                   {labelsLoading && (
-                    <span className="text-white/40 font-normal normal-case">(loading…)</span>
+                    <span className="text-gray-400 dark:text-white/40 font-normal normal-case">(loading…)</span>
                   )}
                   {!labelsLoading && labels.length > 0 && (
-                    <span className="text-white/40 font-normal normal-case">({labels.length})</span>
+                    <span className="text-gray-400 dark:text-white/40 font-normal normal-case">({labels.length})</span>
                   )}
                 </button>
                 {labelsExpanded && (
@@ -364,7 +366,7 @@ export default function CreateIssueForm({
                         placeholder="Filter labels…"
                         value={labelFilter}
                         onChange={(e) => setLabelFilter(e.target.value)}
-                        className="w-full mb-2 px-2.5 py-1.5 rounded-md text-xs bg-white/5 border border-white/10 text-white placeholder-white/30 focus:outline-none focus:ring-1 focus:ring-blue-500/50"
+                        className="w-full mb-2 px-2.5 py-1.5 rounded-md text-xs bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-white/30 focus:outline-none focus:ring-1 focus:ring-blue-500/50"
                       />
                     )}
                     <div className="flex flex-wrap gap-2 max-h-[180px] overflow-y-auto">
@@ -379,7 +381,7 @@ export default function CreateIssueForm({
                           ))}
                         </div>
                       ) : filteredLabels.length === 0 ? (
-                        <p className="text-xs text-white/40 py-2">
+                        <p className="text-xs text-gray-500 dark:text-white/40 py-2">
                           {labelFilter ? 'No labels match' : 'No labels'}
                         </p>
                       ) : (
@@ -400,8 +402,8 @@ export default function CreateIssueForm({
                           }
                           className={`px-2.5 py-1 rounded-md text-xs font-medium border-2 transition-all cursor-pointer ${
                             isSelected
-                              ? 'border-white/80 ring-2 ring-white/20'
-                              : 'border-transparent hover:border-white/40'
+                              ? 'border-gray-800 dark:border-white/80 ring-2 ring-gray-400 dark:ring-white/20'
+                              : 'border-transparent hover:border-gray-500 dark:hover:border-white/40'
                           }`}
                           style={{
                             backgroundColor: bgColor,
@@ -423,14 +425,14 @@ export default function CreateIssueForm({
         </div>
       </div>
 
-      <div className="flex items-center justify-between gap-4 px-5 py-3 border-t border-white/10 bg-black/10 shrink-0">
-        <span className="text-xs text-white/40 hidden sm:inline">
+      <div className="flex items-center justify-between gap-4 px-5 py-3 border-t border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-black/10 shrink-0">
+        <span className="text-xs text-gray-500 dark:text-white/40 hidden sm:inline">
           Ctrl+Enter to submit · Esc to cancel
         </span>
         <div className="flex gap-3 ml-auto">
         <button
           type="button"
-          className="px-4 py-2.5 rounded-lg text-white/90 hover:bg-white/10 transition-colors font-medium"
+          className="px-4 py-2.5 rounded-lg text-gray-700 dark:text-white/90 hover:bg-gray-200 dark:hover:bg-white/10 transition-colors font-medium"
           onClick={handleClose}
         >
           Cancel

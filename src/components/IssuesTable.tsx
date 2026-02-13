@@ -14,22 +14,22 @@ export default function IssuesTable({
   selectedIssue,
 }: IssuesTableProps) {
   return (
-    <div className="flex-1 overflow-auto rounded-lg border border-white/10">
+    <div className="flex-1 overflow-auto rounded-lg border border-gray-200 dark:border-white/10 bg-white dark:bg-transparent">
       <table className="w-full border-collapse text-sm">
         <thead>
           <tr>
-            <th className="text-left py-3 px-4 bg-black/20 font-semibold text-white/70">State</th>
-            <th className="text-left py-3 px-4 bg-black/20 font-semibold text-white/70">Title</th>
-            <th className="text-left py-3 px-4 bg-black/20 font-semibold text-white/70">Repo</th>
-            <th className="text-left py-3 px-4 bg-black/20 font-semibold text-white/70">Labels</th>
-            <th className="text-left py-3 px-4 bg-black/20 font-semibold text-white/70">Assignee</th>
-            <th className="text-left py-3 px-4 bg-black/20 font-semibold text-white/70">Updated</th>
+            <th className="text-left py-3 px-4 bg-gray-100 dark:bg-black/20 font-semibold text-gray-600 dark:text-white/70">State</th>
+            <th className="text-left py-3 px-4 bg-gray-100 dark:bg-black/20 font-semibold text-gray-600 dark:text-white/70">Title</th>
+            <th className="text-left py-3 px-4 bg-gray-100 dark:bg-black/20 font-semibold text-gray-600 dark:text-white/70">Repo</th>
+            <th className="text-left py-3 px-4 bg-gray-100 dark:bg-black/20 font-semibold text-gray-600 dark:text-white/70">Labels</th>
+            <th className="text-left py-3 px-4 bg-gray-100 dark:bg-black/20 font-semibold text-gray-600 dark:text-white/70">Assignee</th>
+            <th className="text-left py-3 px-4 bg-gray-100 dark:bg-black/20 font-semibold text-gray-600 dark:text-white/70">Updated</th>
           </tr>
         </thead>
         <tbody>
           {issues.length === 0 ? (
             <tr>
-              <td colSpan={6} className="py-8 text-center text-white/50">
+              <td colSpan={6} className="py-8 text-center text-gray-500 dark:text-white/50">
                 No issues found
               </td>
             </tr>

@@ -44,20 +44,25 @@ export default function AuthCallbackPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4">
-        <div className="text-center p-8 rounded-xl bg-white/5 max-w-md">
-          <h2>Sign in failed</h2>
-          <p className="text-red-400 mb-4">{error}</p>
-          <button onClick={() => navigate('/signin')}>Back to sign in</button>
+      <div className="min-h-screen flex items-center justify-center p-4 bg-gray-100 dark:bg-[#242424]">
+        <div className="text-center p-8 rounded-xl bg-white dark:bg-white/5 max-w-md border border-gray-200 dark:border-white/10">
+          <h2 className="text-gray-900 dark:text-white">Sign in failed</h2>
+          <p className="text-red-500 dark:text-red-400 mb-4">{error}</p>
+          <button
+            onClick={() => navigate('/signin')}
+            className="px-4 py-2 rounded-md bg-gray-200 dark:bg-white/10 hover:bg-gray-300 dark:hover:bg-white/20 text-gray-900 dark:text-white"
+          >
+            Back to sign in
+          </button>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4">
-      <div className="text-center p-8 rounded-xl bg-white/5 max-w-md">
-        <p>Completing sign in...</p>
+    <div className="min-h-screen flex items-center justify-center p-4 bg-gray-100 dark:bg-[#242424]">
+      <div className="text-center p-8 rounded-xl bg-white dark:bg-white/5 max-w-md border border-gray-200 dark:border-white/10">
+        <p className="text-gray-800 dark:text-white/90">Completing sign in...</p>
       </div>
     </div>
   )

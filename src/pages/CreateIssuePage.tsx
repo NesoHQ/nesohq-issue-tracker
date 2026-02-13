@@ -32,17 +32,17 @@ export default function CreateIssuePage() {
           <button
             type="button"
             onClick={handleBack}
-            className="flex items-center gap-2 px-3 py-2 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-colors text-sm"
+            className="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-600 dark:text-white/70 hover:text-gray-900 dark:hover:text-white hover:bg-gray-200 dark:hover:bg-white/10 transition-colors text-sm"
             aria-label="Back to issues"
           >
             <span aria-hidden>←</span>
             Back
           </button>
-          <h1 className="m-0 text-lg font-semibold text-white/95">Create new issue</h1>
+          <h1 className="m-0 text-lg font-semibold text-gray-900 dark:text-white/95">Create new issue</h1>
         </div>
       </div>
       <div className="flex-1 flex min-h-0">
-        <div className="flex-1 min-w-0 flex flex-col min-h-0 rounded-lg border border-white/10 bg-black/15 overflow-hidden">
+        <div className="flex-1 min-w-0 flex flex-col min-h-0 rounded-lg border border-gray-200 dark:border-white/10 bg-white dark:bg-black/15 overflow-hidden">
           <CreateIssueForm
             selectedRepos={selectedRepos}
             onClose={() => navigate('/')}

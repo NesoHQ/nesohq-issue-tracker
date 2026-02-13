@@ -166,8 +166,8 @@ export default function IssueDetailPanel({
         disabled={saving}
         className={`px-2.5 py-1 rounded-md text-xs font-medium border-2 transition-all cursor-pointer disabled:opacity-50 ${
           isSelected
-            ? 'border-white ring-2 ring-white/30'
-            : 'border-transparent hover:border-white/30'
+            ? 'border-gray-800 dark:border-white ring-2 ring-gray-400 dark:ring-white/30'
+            : 'border-transparent hover:border-gray-500 dark:hover:border-white/30'
         }`}
         style={{
           backgroundColor: bgColor,
@@ -182,9 +182,9 @@ export default function IssueDetailPanel({
 
   if (loading || !issue) {
     return (
-      <div className="w-[360px] shrink-0 flex flex-col border border-white/10 rounded-lg bg-black/15 overflow-hidden">
-        <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
-          <button className="bg-transparent border-none text-2xl cursor-pointer text-white/70 px-1" onClick={onClose}>
+      <div className="w-[360px] shrink-0 flex flex-col border border-gray-200 dark:border-white/10 rounded-lg bg-white dark:bg-black/15 overflow-hidden">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-white/10">
+          <button className="bg-transparent border-none text-2xl cursor-pointer text-gray-600 dark:text-white/70 px-1" onClick={onClose}>
             ×
           </button>
         </div>
@@ -194,28 +194,28 @@ export default function IssueDetailPanel({
   }
 
   return (
-    <div className="w-[360px] shrink-0 flex flex-col border border-white/10 rounded-lg bg-black/15 overflow-hidden">
-      <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
+    <div className="w-[360px] shrink-0 flex flex-col border border-gray-200 dark:border-white/10 rounded-lg bg-white dark:bg-black/15 overflow-hidden">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-white/10">
         <a
           href={issue.html_url}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-sm"
+          className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
         >
           Open on GitHub
         </a>
-        <button className="bg-transparent border-none text-2xl cursor-pointer text-white/70 px-1" onClick={onClose}>
+        <button className="bg-transparent border-none text-2xl cursor-pointer text-gray-600 dark:text-white/70 px-1" onClick={onClose}>
           ×
         </button>
       </div>
       <div className="flex-1 overflow-y-auto p-4">
         <div className="mb-4">
-          <label className="block text-xs font-semibold text-white/50 mb-1">State</label>
+          <label className="block text-xs font-semibold text-gray-500 dark:text-white/50 mb-1">State</label>
           <select
             value={issue.state}
             onChange={(e) => handleStateChange(e.target.value as 'open' | 'closed')}
             disabled={saving}
-            className="w-full px-2 py-1.5 rounded-md bg-white/10 border border-white/20 text-inherit"
+            className="w-full px-2 py-1.5 rounded-md bg-gray-50 dark:bg-white/10 border border-gray-200 dark:border-white/20 text-inherit"
           >
             <option value="open">Open</option>
             <option value="closed">Closed</option>
@@ -223,7 +223,7 @@ export default function IssueDetailPanel({
         </div>
 
         <div className="mb-4">
-          <label className="block text-xs font-semibold text-white/50 mb-1">Title</label>
+          <label className="block text-xs font-semibold text-gray-500 dark:text-white/50 mb-1">Title</label>
           {editing === 'title' ? (
             <input
               value={editTitle}
@@ -237,11 +237,11 @@ export default function IssueDetailPanel({
                 }
               }}
               autoFocus
-              className="w-full px-2 py-2 rounded-md bg-white/10 border border-white/20 text-inherit font-inherit"
+              className="w-full px-2 py-2 rounded-md bg-gray-50 dark:bg-white/10 border border-gray-200 dark:border-white/20 text-inherit font-inherit"
             />
           ) : (
             <h2
-              className="m-0 text-base font-semibold cursor-pointer"
+              className="m-0 text-base font-semibold cursor-pointer text-gray-900 dark:text-inherit"
               onDoubleClick={() => setEditing('title')}
             >
               {issue.title}
@@ -250,7 +250,7 @@ export default function IssueDetailPanel({
         </div>
 
         <div className="mb-4">
-          <label className="block text-xs font-semibold text-white/50 mb-1">Description</label>
+          <label className="block text-xs font-semibold text-gray-500 dark:text-white/50 mb-1">Description</label>
           {editing === 'body' ? (
             <textarea
               value={editBody}
@@ -262,7 +262,7 @@ export default function IssueDetailPanel({
             />
           ) : (
             <div
-              className="text-sm whitespace-pre-wrap text-white/85 cursor-pointer"
+              className="text-sm whitespace-pre-wrap text-gray-800 dark:text-white/85 cursor-pointer"
               onDoubleClick={() => setEditing('body')}
             >
               {issue.body || <em>No description</em>}
@@ -288,7 +288,7 @@ export default function IssueDetailPanel({
             )}
           </button>
           {labelsExpanded && (
-            <div className="flex flex-wrap gap-2 p-3 rounded-lg bg-white/5 border border-white/10 max-h-[140px] overflow-y-auto">
+            <div className="flex flex-wrap gap-2 p-3 rounded-lg bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 max-h-[140px] overflow-y-auto">
               {allLabels.map((l) => labelChip(l, selectedLabelNames.includes(l.name)))}
             </div>
           )}
