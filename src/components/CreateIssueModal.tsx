@@ -1,5 +1,14 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../contexts/AuthContext'
+
+function isColorLight(hex: string): boolean {
+  const h = hex.replace('#', '')
+  const r = parseInt(h.slice(0, 2), 16)
+  const g = parseInt(h.slice(2, 4), 16)
+  const b = parseInt(h.slice(4, 6), 16)
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255
+  return luminance > 0.6
+}
 import { useIssuesStore } from '../store/issuesStore'
 import { useToast } from '../contexts/ToastContext'
 import { createIssue, listRepoLabels } from '../lib/githubClient'
@@ -123,22 +132,38 @@ export default function CreateIssueModal({
               <label className="block text-sm font-medium text-white/80 mb-2">
                 Labels <span className="text-white/40 text-xs">(optional)</span>
               </label>
-              <select
-                multiple
-                value={labels}
-                onChange={(e) =>
-                  setLabels(Array.from(e.target.selectedOptions, (o) => o.value))
-                }
-                className="w-full px-2 py-2 rounded-md bg-white/10 border border-white/20 text-inherit font-inherit focus:outline-none focus:ring-2 focus:ring-blue-500/50 min-h-[80px]"
-                title="Hold Ctrl/Cmd to select multiple"
-              >
-                {repoLabels.map((l) => (
-                  <option key={l.id} value={l.name}>
-                    {l.name}
-                  </option>
-                ))}
-              </select>
-              <p className="text-xs text-white/40 mt-1">Hold Ctrl/Cmd to select multiple</p>
+              <div className="flex flex-wrap gap-2 p-3 rounded-lg bg-white/5 border border-white/10 max-h-[140px] overflow-y-auto">
+                {repoLabels.map((l) => {
+                  const isSelected = labels.includes(l.name)
+                  const bgColor = `#${l.color}`
+                  const isLight = isColorLight(l.color)
+                  return (
+                    <button
+                      key={l.id}
+                      type="button"
+                      onClick={() =>
+                        setLabels((prev) =>
+                          isSelected
+                            ? prev.filter((n) => n !== l.name)
+                            : [...prev, l.name]
+                        )
+                      }
+                      className={`px-2.5 py-1 rounded-md text-xs font-medium border-2 transition-all cursor-pointer ${
+                        isSelected
+                          ? 'border-white ring-2 ring-white/30'
+                          : 'border-transparent hover:border-white/30'
+                      }`}
+                      style={{
+                        backgroundColor: bgColor,
+                        color: isLight ? '#1a1a1a' : '#fff',
+                      }}
+                      title={l.description || l.name}
+                    >
+                      {l.name}
+                    </button>
+                  )
+                })}
+              </div>
             </div>
           )}
 
