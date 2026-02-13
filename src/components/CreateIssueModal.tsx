@@ -1,5 +1,8 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
+import MDEditor from '@uiw/react-md-editor'
+import '@uiw/react-md-editor/markdown-editor.css'
 import { useAuth } from '../contexts/AuthContext'
+import { uploadImage } from '../lib/api'
 
 function isColorLight(hex: string): boolean {
   const h = hex.replace('#', '')
@@ -31,6 +34,8 @@ export default function CreateIssueModal({
   const [labels, setLabels] = useState<string[]>([])
   const [repoLabels, setRepoLabels] = useState<Awaited<ReturnType<typeof listRepoLabels>>>([])
   const [saving, setSaving] = useState(false)
+  const [labelsExpanded, setLabelsExpanded] = useState(true)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     if (!token || !repo) return
@@ -39,6 +44,38 @@ export default function CreateIssueModal({
       setLabels([])
     })
   }, [token, repo])
+
+  const handleImageInsert = useCallback(
+    async (file: File, insertAt: number, replaceLen: number) => {
+      try {
+        const url = await uploadImage(file)
+        const insert = `![image](${url})`
+        setBody((prev) => {
+          const pos = insertAt < 0 ? prev.length : insertAt
+          return prev.slice(0, pos) + insert + prev.slice(pos + replaceLen)
+        })
+        addToast('Image uploaded', 'success')
+      } catch (err) {
+        addToast(err instanceof Error ? err.message : 'Image upload failed', 'error')
+      }
+    },
+    [addToast]
+  )
+
+  const handleImageUploadClick = useCallback(() => {
+    fileInputRef.current?.click()
+  }, [])
+
+  const handleImageFileSelect = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0]
+      if (!file) return
+      // Append at end (position will be resolved in setBody callback)
+      handleImageInsert(file, -1, 0)
+      e.target.value = ''
+    },
+    [handleImageInsert]
+  )
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -115,23 +152,94 @@ export default function CreateIssueModal({
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-white/80 mb-2">
-              Description <span className="text-white/40 text-xs">(optional)</span>
-            </label>
-            <textarea
-              value={body}
-              onChange={(e) => setBody(e.target.value)}
-              placeholder="Add more context, steps to reproduce, or screenshots..."
-              rows={5}
-              className="w-full px-2 py-2 rounded-md bg-white/10 border border-white/20 text-inherit font-inherit resize-y placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
-            />
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-sm font-medium text-white/80">
+                Description <span className="text-white/40 text-xs">(optional)</span>
+              </label>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/gif,image/webp"
+                className="hidden"
+                onChange={handleImageFileSelect}
+              />
+              <button
+                type="button"
+                onClick={handleImageUploadClick}
+                className="text-xs text-white/60 hover:text-white/90 transition-colors"
+              >
+                Upload image
+              </button>
+            </div>
+            <div data-color-mode="dark" className="[&_.w-md-editor]:bg-white/10 [&_.w-md-editor-toolbar]:bg-white/5 [&_.w-md-editor-toolbar]:border-white/20 [&_.w-md-editor-content]:bg-transparent [&_.w-md-editor-text-pre]:text-inherit [&_.w-md-editor-text-input]:text-inherit [&_.w-md-editor-text-input]:placeholder-white/40 [&_.w-md-editor-preview]:bg-white/5 [&_.w-md-editor-preview]:border-white/10">
+              <MDEditor
+                value={body}
+                onChange={(v) => setBody(v ?? '')}
+                height={180}
+                preview="live"
+                textareaProps={{
+                  placeholder:
+                    'Add more context, steps to reproduce, or screenshots. Supports **markdown** and images (paste or drag).',
+                  onPaste: (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+                    const clipboardData = e.clipboardData
+                    if (!clipboardData) return
+                    let file: File | undefined = clipboardData.files?.[0]
+                    if (!file && clipboardData.items) {
+                      for (const item of clipboardData.items) {
+                        if (item.type.startsWith('image/')) {
+                          file = item.getAsFile() ?? undefined
+                          break
+                        }
+                      }
+                    }
+                    if (!file?.type.startsWith('image/')) return
+                    e.preventDefault()
+                    e.stopPropagation()
+                    const target = e.currentTarget
+                    const start = target.selectionStart ?? 0
+                    const end = target.selectionEnd ?? 0
+                    handleImageInsert(file, start, end - start)
+                  },
+                  onDrop: (e: React.DragEvent<HTMLTextAreaElement>) => {
+                    const file = e.dataTransfer?.files?.[0]
+                    if (!file?.type.startsWith('image/')) return
+                    e.preventDefault()
+                    e.stopPropagation()
+                    const target = e.currentTarget
+                    const start = target.selectionStart ?? 0
+                    const end = target.selectionEnd ?? 0
+                    handleImageInsert(file, start, end - start)
+                  },
+                  onDragOver: (e: React.DragEvent<HTMLTextAreaElement>) => {
+                    if (e.dataTransfer?.types?.includes('Files')) {
+                      e.preventDefault()
+                      e.dataTransfer.dropEffect = 'copy'
+                    }
+                  },
+                }}
+              />
+            </div>
           </div>
 
           {repoLabels.length > 0 && (
             <div>
-              <label className="block text-sm font-medium text-white/80 mb-2">
+              <button
+                type="button"
+                onClick={() => setLabelsExpanded((v) => !v)}
+                className="flex items-center gap-2 w-full text-left text-sm font-medium text-white/80 mb-2 hover:text-white/90 transition-colors"
+              >
+                <span
+                  className={`transition-transform ${labelsExpanded ? 'rotate-90' : ''}`}
+                  aria-hidden
+                >
+                  ›
+                </span>
                 Labels <span className="text-white/40 text-xs">(optional)</span>
-              </label>
+                {labels.length > 0 && (
+                  <span className="text-white/50 text-xs">({labels.length} selected)</span>
+                )}
+              </button>
+              {labelsExpanded && (
               <div className="flex flex-wrap gap-2 p-3 rounded-lg bg-white/5 border border-white/10 max-h-[140px] overflow-y-auto">
                 {repoLabels.map((l) => {
                   const isSelected = labels.includes(l.name)
@@ -164,6 +272,7 @@ export default function CreateIssueModal({
                   )
                 })}
               </div>
+              )}
             </div>
           )}
 
