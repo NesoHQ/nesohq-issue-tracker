@@ -64,21 +64,28 @@ export default function CreateIssueModal({
   }
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-header">
-          <h2>New issue</h2>
-          <button className="modal-close" onClick={onClose}>
+    <div
+      className="fixed inset-0 bg-black/60 flex items-center justify-center z-[1000]"
+      onClick={onClose}
+    >
+      <div
+        className="bg-[#1e1e1e] rounded-xl w-full max-w-[500px] max-h-[90vh] overflow-hidden flex flex-col"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between px-5 py-4 border-b border-white/10">
+          <h2 className="m-0 text-xl">New issue</h2>
+          <button className="bg-transparent border-none text-2xl cursor-pointer text-white/70" onClick={onClose}>
             ×
           </button>
         </div>
-        <form onSubmit={handleSubmit} className="modal-body">
-          <div className="form-field">
-            <label>Repository</label>
+        <form onSubmit={handleSubmit} className="p-5 overflow-y-auto">
+          <div className="mb-4">
+            <label className="block text-xs font-semibold text-white/60 mb-1">Repository</label>
             <select
               value={repo}
               onChange={(e) => setRepo(e.target.value)}
               required
+              className="w-full px-2 py-2 rounded-md bg-white/10 border border-white/20 text-inherit font-inherit"
             >
               {selectedRepos.map((r) => (
                 <option key={r} value={r}>
@@ -87,27 +94,29 @@ export default function CreateIssueModal({
               ))}
             </select>
           </div>
-          <div className="form-field">
-            <label>Title</label>
+          <div className="mb-4">
+            <label className="block text-xs font-semibold text-white/60 mb-1">Title</label>
             <input
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Issue title"
               required
+              className="w-full px-2 py-2 rounded-md bg-white/10 border border-white/20 text-inherit font-inherit"
             />
           </div>
-          <div className="form-field">
-            <label>Description</label>
+          <div className="mb-4">
+            <label className="block text-xs font-semibold text-white/60 mb-1">Description</label>
             <textarea
               value={body}
               onChange={(e) => setBody(e.target.value)}
               placeholder="Add a description..."
               rows={6}
+              className="w-full px-2 py-2 rounded-md bg-white/10 border border-white/20 text-inherit font-inherit resize-y"
             />
           </div>
-          <div className="form-field">
-            <label>Labels</label>
+          <div className="mb-4">
+            <label className="block text-xs font-semibold text-white/60 mb-1">Labels</label>
             <select
               multiple
               value={labels}
@@ -116,6 +125,7 @@ export default function CreateIssueModal({
                   Array.from(e.target.selectedOptions, (o) => o.value)
                 )
               }
+              className="w-full px-2 py-2 rounded-md bg-white/10 border border-white/20 text-inherit font-inherit"
             >
               {repoLabels.map((l) => (
                 <option key={l.id} value={l.name}>
@@ -124,8 +134,8 @@ export default function CreateIssueModal({
               ))}
             </select>
           </div>
-          <div className="form-field">
-            <label>Assignees</label>
+          <div className="mb-4">
+            <label className="block text-xs font-semibold text-white/60 mb-1">Assignees</label>
             <select
               multiple
               value={assignees}
@@ -134,6 +144,7 @@ export default function CreateIssueModal({
                   Array.from(e.target.selectedOptions, (o) => o.value)
                 )
               }
+              className="w-full px-2 py-2 rounded-md bg-white/10 border border-white/20 text-inherit font-inherit"
             >
               {repoCollaborators.map((c) => (
                 <option key={c.id} value={c.login}>
@@ -142,7 +153,7 @@ export default function CreateIssueModal({
               ))}
             </select>
           </div>
-          <div className="modal-actions">
+          <div className="flex justify-end gap-3 mt-6">
             <button type="button" onClick={onClose}>
               Cancel
             </button>

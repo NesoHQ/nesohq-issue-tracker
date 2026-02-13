@@ -14,20 +14,27 @@ export default function IssuesTable({
   selectedIssue,
 }: IssuesTableProps) {
   return (
-    <div className="issues-table-wrapper">
-      <table className="issues-table">
+    <div className="flex-1 overflow-auto rounded-lg border border-white/10">
+      <table className="w-full border-collapse text-sm">
         <thead>
           <tr>
-            <th className="col-state">State</th>
-            <th className="col-title">Title</th>
-            <th className="col-repo">Repo</th>
-            <th className="col-labels">Labels</th>
-            <th className="col-assignee">Assignee</th>
-            <th className="col-updated">Updated</th>
+            <th className="text-left py-3 px-4 bg-black/20 font-semibold text-white/70">State</th>
+            <th className="text-left py-3 px-4 bg-black/20 font-semibold text-white/70">Title</th>
+            <th className="text-left py-3 px-4 bg-black/20 font-semibold text-white/70">Repo</th>
+            <th className="text-left py-3 px-4 bg-black/20 font-semibold text-white/70">Labels</th>
+            <th className="text-left py-3 px-4 bg-black/20 font-semibold text-white/70">Assignee</th>
+            <th className="text-left py-3 px-4 bg-black/20 font-semibold text-white/70">Updated</th>
           </tr>
         </thead>
         <tbody>
-          {issues.map((issue) => {
+          {issues.length === 0 ? (
+            <tr>
+              <td colSpan={6} className="py-8 text-center text-white/50">
+                No issues found
+              </td>
+            </tr>
+          ) : (
+          issues.map((issue) => {
             const repo =
               issue.repo_full_name ||
               (issue.repository_url
@@ -45,12 +52,10 @@ export default function IssuesTable({
                 onSelect={() => onSelectIssue({ repo, number: issue.number })}
               />
             )
-          })}
+          })
+          )}
         </tbody>
       </table>
-      {issues.length === 0 && (
-        <div className="issues-empty">No issues found</div>
-      )}
     </div>
   )
 }

@@ -20,20 +20,20 @@ export default function SignInPage() {
   const hasClientId = !!import.meta.env.VITE_GITHUB_CLIENT_ID
 
   return (
-    <div className="signin-page">
-      <div className="signin-card">
-        <h1>GitHub Issues</h1>
-        <p className="subtitle">Manage your GitHub issues in a Notion-like workspace</p>
-        {error && <p className="error">{error}</p>}
+    <div className="min-h-screen flex items-center justify-center p-4">
+      <div className="text-center p-8 rounded-xl bg-white/5 max-w-md">
+        <h1 className="m-0 mb-2 text-2xl font-semibold">GitHub Issues</h1>
+        <p className="text-white/70 mb-8">Manage your GitHub issues in a Notion-like workspace</p>
+        {error && <p className="text-red-400 mb-4">{error}</p>}
         <button
-          className="signin-button"
+          className="px-6 py-3 text-base cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
           onClick={handleSignIn}
           disabled={loading || !hasClientId}
         >
           {loading ? 'Redirecting...' : 'Sign in with GitHub'}
         </button>
         {!hasClientId && (
-          <p className="hint">
+          <p className="text-sm text-white/60 mt-4">
             Configure VITE_GITHUB_CLIENT_ID in .env and run the auth server with
             GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET.
           </p>

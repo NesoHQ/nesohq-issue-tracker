@@ -44,10 +44,10 @@ export default function AuthCallbackPage() {
 
   if (error) {
     return (
-      <div className="signin-page">
-        <div className="signin-card">
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <div className="text-center p-8 rounded-xl bg-white/5 max-w-md">
           <h2>Sign in failed</h2>
-          <p className="error">{error}</p>
+          <p className="text-red-400 mb-4">{error}</p>
           <button onClick={() => navigate('/signin')}>Back to sign in</button>
         </div>
       </div>
@@ -55,8 +55,8 @@ export default function AuthCallbackPage() {
   }
 
   return (
-    <div className="signin-page">
-      <div className="signin-card">
+    <div className="min-h-screen flex items-center justify-center p-4">
+      <div className="text-center p-8 rounded-xl bg-white/5 max-w-md">
         <p>Completing sign in...</p>
       </div>
     </div>

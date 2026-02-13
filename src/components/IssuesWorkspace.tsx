@@ -27,16 +27,16 @@ export default function IssuesWorkspace() {
 
   if (selectedRepos.length === 0) {
     return (
-      <div className="workspace-empty">
+      <div className="py-12 text-center text-white/60">
         <p>Select one or more repositories from the sidebar to view issues.</p>
       </div>
     )
   }
 
   return (
-    <div className="issues-workspace">
-      <div className="issues-toolbar">
-        <div className="issues-filters">
+    <div className="flex flex-col h-full">
+      <div className="flex items-center justify-between gap-4 mb-4">
+        <div className="flex gap-3 items-center">
           <select
             value={filters.state}
             onChange={(e) =>
@@ -45,6 +45,7 @@ export default function IssuesWorkspace() {
                 state: e.target.value as 'open' | 'closed' | 'all',
               }))
             }
+            className="px-3 py-1.5 rounded-md bg-white/10 border border-white/20 text-inherit"
           >
             <option value="all">All</option>
             <option value="open">Open</option>
@@ -57,11 +58,11 @@ export default function IssuesWorkspace() {
             onChange={(e) =>
               setFilters((f) => ({ ...f, search: e.target.value }))
             }
-            className="issues-search"
+            className="px-3 py-1.5 min-w-[200px] rounded-md bg-white/10 border border-white/20 text-inherit"
           />
         </div>
         <button
-          className="new-issue-btn"
+          className="px-4 py-2 bg-blue-500 border-none rounded-md text-white font-medium cursor-pointer hover:bg-blue-600"
           onClick={() => setShowCreateModal(true)}
         >
           New issue
@@ -69,13 +70,14 @@ export default function IssuesWorkspace() {
       </div>
 
       {loading && issues.length === 0 && (
-        <div className="issues-loading">
-          <span className="spinner" /> Loading issues...
+        <div className="p-4 text-white/70 flex items-center gap-2">
+          <span className="inline-block w-[18px] h-[18px] border-2 border-white/20 border-t-white/80 rounded-full animate-spin-slow" />
+          Loading issues...
         </div>
       )}
-      {error && <div className="issues-error">{error}</div>}
+      {error && <div className="p-4 text-red-400">{error}</div>}
 
-      <div className="issues-content">
+      <div className="flex-1 flex gap-4 min-h-0">
         <IssuesTable
           issues={issues}
           selectedRepos={selectedRepos}
@@ -92,8 +94,8 @@ export default function IssuesWorkspace() {
       </div>
 
       {anyHasMore && (
-        <div className="issues-load-more">
-          <button onClick={loadMore} disabled={loading}>
+        <div className="py-4 text-center">
+          <button onClick={loadMore} disabled={loading} className="px-4 py-2">
             {loading ? 'Loading...' : 'Load more'}
           </button>
         </div>

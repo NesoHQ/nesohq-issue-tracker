@@ -4,11 +4,11 @@ import RepoSelectorSidebar from './RepoSelectorSidebar'
 
 export default function AppShell() {
   return (
-    <div className="app-shell">
+    <div className="min-h-screen flex flex-col">
       <TopBar />
-      <div className="app-body">
+      <div className="flex-1 flex min-h-0">
         <RepoSelectorSidebar />
-        <main className="app-main">
+        <main className="flex-1 overflow-auto p-6">
           <Outlet />
         </main>
       </div>

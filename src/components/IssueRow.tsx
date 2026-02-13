@@ -24,56 +24,64 @@ export default function IssueRow({
 }: IssueRowProps) {
   return (
     <tr
-      className={`issue-row ${isSelected ? 'selected' : ''}`}
+      className={`cursor-pointer hover:bg-white/5 ${isSelected ? 'bg-blue-500/15' : ''}`}
       onClick={onSelect}
     >
-      <td className="col-state">
-        <span className={`state-badge state-${issue.state}`}>{issue.state}</span>
+      <td className="py-2.5 px-4 border-t border-white/[0.06]">
+        <span
+          className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${
+            issue.state === 'open'
+              ? 'bg-green-500/20 text-green-500'
+              : 'bg-gray-500/30 text-gray-400'
+          }`}
+        >
+          {issue.state}
+        </span>
       </td>
-      <td className="col-title">
-        <span className="issue-title">#{issue.number} {issue.title}</span>
+      <td className="py-2.5 px-4 border-t border-white/[0.06]">
+        <span className="font-medium">#{issue.number} {issue.title}</span>
       </td>
-      <td className="col-repo">
-        <span className="repo-name">{repo}</span>
+      <td className="py-2.5 px-4 border-t border-white/[0.06]">
+        <span className="text-xs text-white/60">{repo}</span>
       </td>
-      <td className="col-labels">
-        <div className="labels-list">
+      <td className="py-2.5 px-4 border-t border-white/[0.06]">
+        <div className="flex flex-wrap gap-1">
           {issue.labels.slice(0, 3).map((l) => (
             <span
               key={l.id}
-              className="label-badge"
+              className="px-1.5 py-0.5 rounded text-[0.7rem] text-black"
               style={{ backgroundColor: `#${l.color}` }}
             >
               {l.name}
             </span>
           ))}
           {issue.labels.length > 3 && (
-            <span className="label-more">+{issue.labels.length - 3}</span>
+            <span className="text-xs text-white/50">+{issue.labels.length - 3}</span>
           )}
         </div>
       </td>
-      <td className="col-assignee">
+      <td className="py-2.5 px-4 border-t border-white/[0.06]">
         {issue.assignees.length > 0 ? (
-          <div className="assignees">
+          <div className="flex items-center gap-1">
             {issue.assignees.slice(0, 2).map((a) => (
               <img
                 key={a.id}
                 src={a.avatar_url}
                 alt={a.login}
-                className="assignee-avatar"
+                className="w-5 h-5 rounded-full"
                 title={a.login}
               />
             ))}
             {issue.assignees.length > 2 && (
-              <span className="assignee-more">+{issue.assignees.length - 2}</span>
+              <span>+{issue.assignees.length - 2}</span>
             )}
           </div>
         ) : (
-          <span className="no-assignee">—</span>
+          <span>—</span>
         )}
       </td>
-      <td className="col-updated">
-        <span className="updated-at">{formatDate(issue.updated_at)}</span>
+      <td className="py-2.5 px-4 border-t border-white/[0.06]">
+        <span className="text-xs text-white/50">{formatDate(issue.updated_at)}</span>
       </td>
     </tr>
   )
