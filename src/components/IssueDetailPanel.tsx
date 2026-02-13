@@ -2,12 +2,7 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { useIssuesStore } from '../store/issuesStore'
 import { useToast } from '../contexts/ToastContext'
-import {
-  getIssue,
-  updateIssue,
-  listRepoLabels,
-  listRepoCollaborators,
-} from '../lib/githubClient'
+import { getIssue, updateIssue, listRepoLabels } from '../lib/githubClient'
 import type { GitHubIssue } from '../types/github'
 
 interface IssueDetailPanelProps {
@@ -30,7 +25,6 @@ export default function IssueDetailPanel({
   const [editTitle, setEditTitle] = useState('')
   const [editBody, setEditBody] = useState('')
   const [labels, setLabels] = useState<Awaited<ReturnType<typeof listRepoLabels>>>([])
-  const [collaborators, setCollaborators] = useState<Awaited<ReturnType<typeof listRepoCollaborators>>>([])
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
@@ -39,14 +33,12 @@ export default function IssueDetailPanel({
     Promise.all([
       getIssue(token, repo, issueNumber),
       listRepoLabels(token, repo),
-      listRepoCollaborators(token, repo),
     ])
-      .then(([i, l, c]) => {
+      .then(([i, l]) => {
         setIssue(i)
         setEditTitle(i.title)
         setEditBody(i.body || '')
         setLabels(l)
-        setCollaborators(c)
       })
       .catch(() => addToast('Failed to load issue', 'error'))
       .finally(() => setLoading(false))
@@ -131,29 +123,6 @@ export default function IssueDetailPanel({
     } catch {
       updateIssueLocally(repo, issueNumber, { labels: prev })
       addToast('Failed to update labels', 'error')
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  const handleAssigneeChange = async (assignees: string[]) => {
-    if (!token || !issue) return
-    setSaving(true)
-    const prev = issue.assignees
-    const newAssignees = collaborators.filter((c) => assignees.includes(c.login))
-    updateIssueLocally(repo, issueNumber, {
-      assignees: newAssignees,
-      assignee: newAssignees[0] || null,
-    })
-    try {
-      const updated = await updateIssue(token, repo, issueNumber, {
-        assignees,
-      })
-      setIssue(updated)
-      addToast('Assignees updated', 'success')
-    } catch {
-      updateIssueLocally(repo, issueNumber, { assignees: prev, assignee: prev[0] || null })
-      addToast('Failed to update assignees', 'error')
     } finally {
       setSaving(false)
     }
@@ -267,29 +236,6 @@ export default function IssueDetailPanel({
             {labels.map((l) => (
               <option key={l.id} value={l.name}>
                 {l.name}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div className="mb-4">
-          <label className="block text-xs font-semibold text-white/50 mb-1">Assignees</label>
-          <select
-            multiple
-            value={issue.assignees.map((a) => a.login)}
-            onChange={(e) => {
-              const selected = Array.from(
-                e.target.selectedOptions,
-                (o) => o.value
-              )
-              handleAssigneeChange(selected)
-            }}
-            disabled={saving}
-            className="w-full px-2 py-1.5 rounded-md bg-white/10 border border-white/20 text-inherit"
-          >
-            {collaborators.map((c) => (
-              <option key={c.id} value={c.login}>
-                {c.login}
               </option>
             ))}
           </select>

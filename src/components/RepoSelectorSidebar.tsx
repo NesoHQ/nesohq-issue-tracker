@@ -34,8 +34,8 @@ export default function RepoSelectorSidebar() {
 
   return (
     <aside
-      className={`flex flex-col shrink-0 border-r border-white/10 bg-black/10 transition-[width] duration-200 ${
-        expanded ? 'w-[260px]' : 'w-12 overflow-hidden'
+      className={`flex flex-col shrink-0 min-h-0 border-r border-white/10 bg-black/10 transition-[width] duration-200 overflow-hidden ${
+        expanded ? 'w-[260px]' : 'w-12'
       }`}
     >
       <div
@@ -59,7 +59,7 @@ export default function RepoSelectorSidebar() {
         </button>
       </div>
       {expanded && (
-        <div className="flex-1 min-h-0 overflow-y-auto p-2 overscroll-contain">
+        <div className="flex-1 min-h-0 overflow-y-scroll overflow-x-hidden p-2 overscroll-contain sidebar-repo-list">
           {loading && <p className="p-4 text-sm text-white/60">Loading repos...</p>}
           {error && <p className="p-4 text-sm text-red-400">{error}</p>}
           {!loading && !error && (

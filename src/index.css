@@ -19,3 +19,29 @@
 .animate-spin-slow {
   animation: spin 0.8s linear infinite;
 }
+
+/* Repositories sidebar scrollable area with visible scrollbar */
+.sidebar-repo-list {
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.4) rgba(255, 255, 255, 0.08);
+}
+
+.sidebar-repo-list::-webkit-scrollbar {
+  width: 10px;
+}
+
+.sidebar-repo-list::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 5px;
+}
+
+.sidebar-repo-list::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.35);
+  border-radius: 5px;
+  border: 2px solid rgba(255, 255, 255, 0.08);
+}
+
+.sidebar-repo-list::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.5);
+}
