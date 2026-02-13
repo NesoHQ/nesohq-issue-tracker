@@ -6,11 +6,14 @@ A Notion-like web frontend to manage GitHub issues across multiple repositories 
 
 - **Sign in with GitHub** via OAuth
 - **Multi-repo workspace** - select multiple repositories and view issues in one place
+- **Expandable sidebar** - collapsible repositories list with scrollable repo selection
 - **Notion-like table** - Title, Repo, State, Labels, Assignee, Updated columns
 - **Inline editing** - double-click to edit title and description in the detail panel
-- **Create issues** - new issue modal with repo, title, body, labels, assignees
-- **Filters** - by state (open/closed/all), search, labels, assignees
+- **Create issues** - new issue modal with repo, title, body, and colored label chips
+- **Filters** - by state (open/closed/all), search
 - **Optimistic updates** - changes appear immediately, roll back on error
+
+Assignees are managed on GitHub; the app displays them but does not edit them.
 
 ## Setup
 
@@ -87,4 +90,5 @@ server/
 - Vite
 - React Router
 - Zustand
+- Tailwind CSS
 - GitHub REST API
