@@ -1,7 +1,11 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { listUserRepos } from '../lib/githubClient'
 import { useWorkspaceStore } from '../store/workspaceStore'
+
+const MIN_WIDTH = 160
+const MAX_WIDTH = 480
+const DEFAULT_WIDTH = 260
 
 export default function RepoSelectorSidebar() {
   const { token } = useAuth()
@@ -15,6 +19,10 @@ export default function RepoSelectorSidebar() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [expanded, setExpanded] = useState(true)
+  const [width, setWidth] = useState(DEFAULT_WIDTH)
+  const [isResizing, setIsResizing] = useState(false)
+  const startXRef = useRef(0)
+  const startWidthRef = useRef(0)
 
   useEffect(() => {
     if (!token) return
@@ -32,11 +40,39 @@ export default function RepoSelectorSidebar() {
       })
   }, [token, setAvailableRepos])
 
+  useEffect(() => {
+    if (!isResizing) return
+    const onMove = (e: MouseEvent) => {
+      const delta = e.clientX - startXRef.current
+      const next = Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, startWidthRef.current + delta))
+      setWidth(next)
+    }
+    const onUp = () => setIsResizing(false)
+    document.addEventListener('mousemove', onMove)
+    document.addEventListener('mouseup', onUp)
+    document.body.style.cursor = 'col-resize'
+    document.body.style.userSelect = 'none'
+    return () => {
+      document.removeEventListener('mousemove', onMove)
+      document.removeEventListener('mouseup', onUp)
+      document.body.style.cursor = ''
+      document.body.style.userSelect = ''
+    }
+  }, [isResizing])
+
+  const handleResizeStart = (e: React.MouseEvent) => {
+    e.preventDefault()
+    startXRef.current = e.clientX
+    startWidthRef.current = width
+    setIsResizing(true)
+  }
+
   return (
     <aside
-      className={`flex flex-col shrink-0 min-h-0 border-r border-white/10 bg-black/10 transition-[width] duration-200 overflow-hidden ${
-        expanded ? 'w-[260px]' : 'w-12'
-      }`}
+      className={`flex flex-col shrink-0 min-h-0 border-r border-white/10 bg-black/10 overflow-hidden relative ${
+        isResizing ? '' : 'transition-[width] duration-200'
+      } ${expanded ? '' : 'w-12'}`}
+      style={expanded ? { width } : undefined}
     >
       <div
         className={`flex items-center shrink-0 border-b border-white/[0.08] gap-2 ${
@@ -87,6 +123,17 @@ export default function RepoSelectorSidebar() {
           {selectedRepos.length} repo{selectedRepos.length !== 1 ? 's' : ''}{' '}
           selected
         </div>
+      )}
+      {expanded && (
+        <div
+          role="separator"
+          aria-orientation="vertical"
+          aria-valuenow={width}
+          aria-valuemin={MIN_WIDTH}
+          aria-valuemax={MAX_WIDTH}
+          className="absolute top-0 right-0 w-2 h-full cursor-col-resize hover:bg-white/10"
+          onMouseDown={handleResizeStart}
+        />
       )}
     </aside>
   )
