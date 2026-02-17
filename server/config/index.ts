@@ -4,8 +4,10 @@ import { fileURLToPath } from 'url'
 import dotenv from 'dotenv'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
-const projectRoot = path.resolve(__dirname, '../..')
-dotenv.config({ path: path.join(projectRoot, '.env') })
+const serverRoot = path.resolve(__dirname, '..')
+// Load .env from server directory first, then fall back to parent directory
+dotenv.config({ path: path.join(serverRoot, '.env') })
+dotenv.config({ path: path.join(serverRoot, '..', '.env') })
 
 /** Server port (default 3001) */
 export const PORT = Number(process.env.PORT) || 3001
@@ -18,7 +20,7 @@ export const GITHUB_CLIENT_ID =
 export const GITHUB_CLIENT_SECRET = process.env.GITHUB_CLIENT_SECRET
 
 /** Directory for uploaded images */
-export const UPLOADS_DIR = path.join(projectRoot, 'uploads')
+export const UPLOADS_DIR = path.join(serverRoot, 'uploads')
 
 /** Ensure uploads directory exists */
 export function ensureUploadsDir(): void {

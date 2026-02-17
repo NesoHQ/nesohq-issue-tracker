@@ -1,4 +1,7 @@
-export const API_BASE = import.meta.env.VITE_API_URL || ''
+// Runtime config (from /config.js, replaceable at container startup) takes
+// precedence over the build-time VITE_API_URL env var.
+const runtimeConfig = (window as unknown as { __APP_CONFIG__?: { API_URL?: string } }).__APP_CONFIG__
+export const API_BASE = runtimeConfig?.API_URL || import.meta.env.VITE_API_URL || ''
 
 async function parseJsonOrThrow(res: Response, fallbackMessage: string): Promise<unknown> {
   const text = await res.text()

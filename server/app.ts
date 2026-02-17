@@ -7,7 +7,10 @@ ensureUploadsDir()
 
 const app = express()
 
-app.use(cors({ origin: true }))
+const corsOrigin = process.env.CORS_ORIGIN
+  ? process.env.CORS_ORIGIN.split(',').map((s) => s.trim())
+  : true
+app.use(cors({ origin: corsOrigin }))
 app.use(express.json())
 
 app.use('/api/uploads', express.static(UPLOADS_DIR))
