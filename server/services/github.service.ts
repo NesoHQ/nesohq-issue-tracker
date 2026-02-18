@@ -13,6 +13,44 @@ export interface GitHubUser {
   name: string | null
 }
 
+function asTokenResponse(value: unknown): TokenResponse {
+  if (!value || typeof value !== 'object') {
+    return {}
+  }
+
+  const payload = value as Record<string, unknown>
+  return {
+    access_token:
+      typeof payload.access_token === 'string' ? payload.access_token : undefined,
+    error: typeof payload.error === 'string' ? payload.error : undefined,
+    error_description:
+      typeof payload.error_description === 'string'
+        ? payload.error_description
+        : undefined,
+  }
+}
+
+function asGitHubUser(value: unknown): GitHubUser | null {
+  if (!value || typeof value !== 'object') {
+    return null
+  }
+
+  const payload = value as Record<string, unknown>
+  if (
+    typeof payload.login !== 'string' ||
+    typeof payload.avatar_url !== 'string' ||
+    (payload.name !== null && typeof payload.name !== 'string')
+  ) {
+    return null
+  }
+
+  return {
+    login: payload.login,
+    avatar_url: payload.avatar_url,
+    name: payload.name,
+  }
+}
+
 /**
  * Exchange OAuth authorization code for access token.
  */
@@ -38,7 +76,8 @@ export async function exchangeCodeForToken(
     body: JSON.stringify(body),
   })
 
-  return res.json()
+  const data: unknown = await res.json()
+  return asTokenResponse(data)
 }
 
 /**
@@ -55,5 +94,6 @@ export async function fetchGitHubUser(
   })
 
   if (!res.ok) return null
-  return res.json()
+  const data: unknown = await res.json()
+  return asGitHubUser(data)
 }

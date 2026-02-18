@@ -9,6 +9,19 @@ import {
 const router = Router()
 
 /**
+ * GET /api/auth/config
+ * Returns non-secret OAuth config required by the frontend.
+ */
+router.get('/config', (_req: Request, res: Response): void => {
+  if (!GITHUB_CLIENT_ID) {
+    res.status(500).json({ error: 'OAuth not configured' })
+    return
+  }
+
+  res.json({ client_id: GITHUB_CLIENT_ID })
+})
+
+/**
  * POST /api/auth/exchange
  * Exchanges OAuth authorization code for access token and fetches user info.
  */

@@ -19,8 +19,6 @@ export default function SignInPage() {
     }
   }
 
-  const hasClientId = !!import.meta.env.VITE_GITHUB_CLIENT_ID
-
   return (
     <div className="min-h-screen flex items-center justify-center p-4 relative">
       <button
@@ -39,16 +37,13 @@ export default function SignInPage() {
         <button
           className="px-6 py-3 text-base cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
           onClick={handleSignIn}
-          disabled={loading || !hasClientId}
+          disabled={loading}
         >
           {loading ? 'Redirecting...' : 'Sign in with GitHub'}
         </button>
-        {!hasClientId && (
-          <p className="text-sm text-gray-500 dark:text-white/60 mt-4">
-            Configure VITE_GITHUB_CLIENT_ID in .env and run the auth server with
-            GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET.
-          </p>
-        )}
+        <p className="text-sm text-gray-500 dark:text-white/60 mt-4">
+          Requires GitHub OAuth config in either <code>client/.env</code> or the auth server.
+        </p>
       </div>
     </div>
   )

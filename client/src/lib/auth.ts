@@ -1,5 +1,7 @@
 const CODE_VERIFIER_KEY = 'oauth_code_verifier'
 const STATE_KEY = 'oauth_state'
+const runtimeConfig = (window as unknown as { __APP_CONFIG__?: { API_URL?: string } }).__APP_CONFIG__
+const API_BASE = runtimeConfig?.API_URL || import.meta.env.VITE_API_URL || ''
 
 function generateRandomString(length: number): string {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~'
@@ -24,9 +26,21 @@ function base64UrlEncode(buffer: ArrayBuffer): string {
 }
 
 export async function buildAuthUrl(): Promise<string> {
-  const clientId = import.meta.env.VITE_GITHUB_CLIENT_ID
+  let clientId = import.meta.env.VITE_GITHUB_CLIENT_ID
   if (!clientId) {
-    throw new Error('VITE_GITHUB_CLIENT_ID is not configured')
+    const res = await fetch(`${API_BASE}/api/auth/config`)
+    if (res.ok) {
+      const data = (await res.json()) as { client_id?: string }
+      if (typeof data.client_id === 'string' && data.client_id.length > 0) {
+        clientId = data.client_id
+      }
+    }
+  }
+
+  if (!clientId) {
+    throw new Error(
+      'GitHub OAuth is not configured. Set VITE_GITHUB_CLIENT_ID in client/.env or GITHUB_CLIENT_ID in server/.env'
+    )
   }
 
   const redirectUri = `${window.location.origin}/auth/callback`
