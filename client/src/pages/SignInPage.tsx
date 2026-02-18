@@ -42,7 +42,7 @@ export default function SignInPage() {
           {loading ? 'Redirecting...' : 'Sign in with GitHub'}
         </button>
         <p className="text-sm text-gray-500 dark:text-white/60 mt-4">
-          Requires GitHub OAuth config in either <code>client/.env</code> or the auth server.
+          Requires GitHub OAuth config on the auth server.
         </p>
       </div>
     </div>

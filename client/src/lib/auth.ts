@@ -39,7 +39,7 @@ export async function buildAuthUrl(): Promise<string> {
 
   if (!clientId) {
     throw new Error(
-      'GitHub OAuth is not configured. Set VITE_GITHUB_CLIENT_ID in client/.env or GITHUB_CLIENT_ID in server/.env'
+      'GitHub OAuth is not configured. Set GITHUB_CLIENT_ID in server/.env'
     )
   }
 

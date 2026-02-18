@@ -33,17 +33,13 @@ Assignees are managed on GitHub; the app displays them but does not edit them.
 # Option A: One .env at the root (both apps read from it)
 cp .env.example .env
 
-# Option B: Separate .env per app
-cp client/.env.example client/.env
+# Option B: Server-only .env
 cp server/.env.example server/.env
 ```
 
 Edit the `.env` file(s):
 
 ```
-# client/.env
-VITE_GITHUB_CLIENT_ID=your_client_id
-
 # server/.env
 GITHUB_CLIENT_ID=your_client_id
 GITHUB_CLIENT_SECRET=your_client_secret
