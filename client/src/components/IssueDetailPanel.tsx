@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { useIssuesStore } from '../store/issuesStore'
 import { useToast } from '../contexts/ToastContext'
@@ -27,6 +27,8 @@ export default function IssueDetailPanel({
   onClose,
   onDeleted,
 }: IssueDetailPanelProps) {
+  const MIN_WIDTH = 360
+  const MAX_WIDTH = 760
   const { token } = useAuth()
   const { updateIssueLocally, removeIssueLocally } = useIssuesStore()
   const { addToast } = useToast()
@@ -39,6 +41,10 @@ export default function IssueDetailPanel({
   const [linkedPullRequests, setLinkedPullRequests] = useState<GitHubLinkedPullRequest[]>([])
   const [saving, setSaving] = useState(false)
   const [labelsExpanded, setLabelsExpanded] = useState(true)
+  const [width, setWidth] = useState(420)
+  const [isResizing, setIsResizing] = useState(false)
+  const resizeStartXRef = useRef(0)
+  const resizeStartWidthRef = useRef(0)
 
   useEffect(() => {
     if (!token || !repo) return
@@ -58,6 +64,26 @@ export default function IssueDetailPanel({
       .catch(() => addToast('Failed to load issue', 'error'))
       .finally(() => setLoading(false))
   }, [token, repo, issueNumber, addToast])
+
+  useEffect(() => {
+    if (!isResizing) return
+    const onMove = (e: MouseEvent) => {
+      const delta = resizeStartXRef.current - e.clientX
+      const next = Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, resizeStartWidthRef.current + delta))
+      setWidth(next)
+    }
+    const onUp = () => setIsResizing(false)
+    document.addEventListener('mousemove', onMove)
+    document.addEventListener('mouseup', onUp)
+    document.body.style.cursor = 'col-resize'
+    document.body.style.userSelect = 'none'
+    return () => {
+      document.removeEventListener('mousemove', onMove)
+      document.removeEventListener('mouseup', onUp)
+      document.body.style.cursor = ''
+      document.body.style.userSelect = ''
+    }
+  }, [isResizing])
 
   const handleSaveTitle = async () => {
     if (!token || !issue || editTitle.trim() === issue.title) {
@@ -206,36 +232,101 @@ export default function IssueDetailPanel({
     )
   }
 
+  const handleResizeStart = (e: React.MouseEvent) => {
+    e.preventDefault()
+    resizeStartXRef.current = e.clientX
+    resizeStartWidthRef.current = width
+    setIsResizing(true)
+  }
+
   if (loading || !issue) {
     return (
-      <div className="w-[360px] shrink-0 flex flex-col border border-gray-200 dark:border-white/10 rounded-lg bg-white dark:bg-black/15 overflow-hidden">
-        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-white/10">
-          <button className="bg-transparent border-none text-2xl cursor-pointer text-gray-600 dark:text-white/70 px-1" onClick={onClose}>
-            ×
+      <div
+        className={`shrink-0 flex flex-col border border-gray-200 dark:border-white/10 rounded-xl bg-white dark:bg-black/20 overflow-hidden relative ${isResizing ? '' : 'transition-[width] duration-200'}`}
+        style={{ width }}
+      >
+        <div
+          role="separator"
+          aria-orientation="vertical"
+          aria-label="Resize issue detail panel"
+          className="absolute left-0 top-0 h-full w-2 cursor-col-resize hover:bg-blue-200/40 dark:hover:bg-blue-400/25"
+          onMouseDown={handleResizeStart}
+        />
+        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-white/10 bg-white/80 dark:bg-black/30">
+          <div className="text-sm font-medium text-gray-700 dark:text-white/80">Loading issue...</div>
+          <button
+            type="button"
+            className="h-8 w-8 p-0 rounded-md border border-gray-300 dark:border-white/15 text-gray-700 dark:text-white/70 bg-white dark:bg-white/5 hover:bg-gray-100 dark:hover:bg-white/10"
+            onClick={onClose}
+            aria-label="Close details panel"
+          >
+            x
           </button>
         </div>
-        <div className="flex-1 overflow-y-auto p-4">Loading...</div>
+        <div className="flex-1 overflow-y-auto p-4 text-sm text-gray-600 dark:text-white/70">Loading...</div>
       </div>
     )
   }
 
   return (
-    <div className="w-[360px] shrink-0 flex flex-col border border-gray-200 dark:border-white/10 rounded-lg bg-white dark:bg-black/15 overflow-hidden">
-      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-white/10">
-        <a
-          href={issue.html_url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
-        >
-          Open on GitHub
-        </a>
-        <button className="bg-transparent border-none text-2xl cursor-pointer text-gray-600 dark:text-white/70 px-1" onClick={onClose}>
-          ×
-        </button>
+    <div
+      className={`shrink-0 flex flex-col border border-gray-200 dark:border-white/10 rounded-xl bg-white dark:bg-black/20 overflow-hidden relative ${isResizing ? '' : 'transition-[width] duration-200'}`}
+      style={{ width }}
+    >
+      <div
+        role="separator"
+        aria-orientation="vertical"
+        aria-valuenow={width}
+        aria-valuemin={MIN_WIDTH}
+        aria-valuemax={MAX_WIDTH}
+        aria-label="Resize issue detail panel"
+        className="absolute left-0 top-0 h-full w-2 cursor-col-resize hover:bg-blue-200/40 dark:hover:bg-blue-400/25"
+        onMouseDown={handleResizeStart}
+      />
+      <div className="shrink-0 px-4 py-3 border-b border-gray-200 dark:border-white/10 bg-white/80 dark:bg-black/30 space-y-3">
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            <div className="text-xs uppercase tracking-wider font-semibold text-gray-500 dark:text-white/55">
+              {repo}
+            </div>
+            <div className="mt-1 text-sm font-semibold text-gray-900 dark:text-white/90">
+              Issue #{issue.number}
+            </div>
+            <div className="mt-1 text-[11px] text-gray-500 dark:text-white/45">
+              Drag the left edge to resize
+            </div>
+          </div>
+          <button
+            type="button"
+            className="h-8 w-8 p-0 rounded-md border border-gray-300 dark:border-white/15 text-gray-700 dark:text-white/70 bg-white dark:bg-white/5 hover:bg-gray-100 dark:hover:bg-white/10"
+            onClick={onClose}
+            aria-label="Close details panel"
+          >
+            x
+          </button>
+        </div>
+        <div className="flex items-center justify-between gap-2">
+          <a
+            href={issue.html_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
+          >
+            Open on GitHub
+          </a>
+          <span
+            className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+              issue.state === 'open'
+                ? 'bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-300'
+                : 'bg-gray-200 text-gray-700 dark:bg-gray-500/30 dark:text-gray-200'
+            }`}
+          >
+            {issue.state}
+          </span>
+        </div>
       </div>
-      <div className="flex-1 overflow-y-auto p-4">
-        <div className="mb-4">
+      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        <section className="rounded-lg border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 p-3">
           <label className="block text-xs font-semibold text-gray-500 dark:text-white/50 mb-1">State</label>
           <select
             value={issue.state}
@@ -246,9 +337,9 @@ export default function IssueDetailPanel({
             <option value="open">Open</option>
             <option value="closed">Closed</option>
           </select>
-        </div>
+        </section>
 
-        <div className="mb-4">
+        <section className="rounded-lg border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 p-3">
           <label className="block text-xs font-semibold text-gray-500 dark:text-white/50 mb-1">
             Linked pull requests ({linkedPullRequests.length})
           </label>
@@ -262,10 +353,19 @@ export default function IssueDetailPanel({
                     href={pr.html_url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="block p-2 rounded-md border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 hover:bg-gray-100 dark:hover:bg-white/10"
+                    className="block p-2.5 rounded-md border border-gray-200 dark:border-white/10 bg-white dark:bg-white/5 hover:bg-gray-100 dark:hover:bg-white/10 transition-colors"
                   >
-                    <div className="text-sm text-blue-600 dark:text-blue-400">
-                      PR #{pr.number}
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="text-sm text-blue-600 dark:text-blue-400">PR #{pr.number}</div>
+                      <span
+                        className={`text-[11px] px-1.5 py-0.5 rounded ${
+                          pr.state === 'open'
+                            ? 'bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-300'
+                            : 'bg-gray-200 text-gray-700 dark:bg-gray-500/30 dark:text-gray-200'
+                        }`}
+                      >
+                        {pr.state}
+                      </span>
                     </div>
                     <div className="text-sm text-gray-800 dark:text-white/85 break-words">
                       {pr.title}
@@ -275,9 +375,9 @@ export default function IssueDetailPanel({
               ))}
             </ul>
           )}
-        </div>
+        </section>
 
-        <div className="mb-4">
+        <section className="rounded-lg border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 p-3">
           <label className="block text-xs font-semibold text-gray-500 dark:text-white/50 mb-1">Title</label>
           {editing === 'title' ? (
             <input
@@ -302,9 +402,9 @@ export default function IssueDetailPanel({
               {issue.title}
             </h2>
           )}
-        </div>
+        </section>
 
-        <div className="mb-4">
+        <section className="rounded-lg border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 p-3">
           <label className="block text-xs font-semibold text-gray-500 dark:text-white/50 mb-1">Description</label>
           {editing === 'body' ? (
             <textarea
@@ -317,19 +417,19 @@ export default function IssueDetailPanel({
             />
           ) : (
             <div
-              className="text-sm whitespace-pre-wrap text-gray-800 dark:text-white/85 cursor-pointer"
+              className="text-sm whitespace-pre-wrap text-gray-800 dark:text-white/85 cursor-pointer leading-6"
               onDoubleClick={() => setEditing('body')}
             >
               {issue.body || <em>No description</em>}
             </div>
           )}
-        </div>
+        </section>
 
-        <div className="mb-4">
+        <section className="rounded-lg border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 p-3">
           <button
             type="button"
             onClick={() => setLabelsExpanded((v) => !v)}
-            className="flex items-center gap-2 w-full text-left text-xs font-semibold text-white/50 mb-2 hover:text-white/70 transition-colors"
+            className="flex items-center gap-2 w-full text-left text-xs font-semibold text-gray-500 dark:text-white/50 mb-2 hover:text-gray-700 dark:hover:text-white/75 transition-colors"
           >
             <span
               className={`transition-transform ${labelsExpanded ? 'rotate-90' : ''}`}
@@ -339,7 +439,7 @@ export default function IssueDetailPanel({
             </span>
             Labels
             {issue.labels.length > 0 && (
-              <span className="text-white/40 text-xs">({issue.labels.length} selected)</span>
+              <span className="text-gray-500 dark:text-white/40 text-xs">({issue.labels.length} selected)</span>
             )}
           </button>
           {labelsExpanded && (
@@ -347,9 +447,9 @@ export default function IssueDetailPanel({
               {allLabels.map((l) => labelChip(l, selectedLabelNames.includes(l.name)))}
             </div>
           )}
-        </div>
+        </section>
 
-        <div className="pt-3 border-t border-gray-200 dark:border-white/10">
+        <section className="pt-2">
           <button
             type="button"
             onClick={handleDeleteIssue}
@@ -358,7 +458,7 @@ export default function IssueDetailPanel({
           >
             Delete issue from GitHub
           </button>
-        </div>
+        </section>
       </div>
     </div>
   )
