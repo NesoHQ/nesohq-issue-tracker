@@ -26,9 +26,11 @@ router.get('/config', (_req: Request, res: Response): void => {
  * Exchanges OAuth authorization code for access token and fetches user info.
  */
 router.post('/exchange', async (req: Request, res: Response): Promise<void> => {
-  const { code, redirect_uri, code_verifier } = req.body
+  const code = req.body?.code
+  const redirectUri = req.body?.redirect_uri
+  const codeVerifier = req.body?.code_verifier
 
-  if (!code || !redirect_uri) {
+  if (typeof code !== 'string' || typeof redirectUri !== 'string') {
     res.status(400).json({ error: 'Missing code or redirect_uri' })
     return
   }
@@ -41,8 +43,8 @@ router.post('/exchange', async (req: Request, res: Response): Promise<void> => {
   try {
     const tokenData = await exchangeCodeForToken(
       code,
-      redirect_uri,
-      code_verifier
+      redirectUri,
+      typeof codeVerifier === 'string' ? codeVerifier : undefined
     )
 
     if (tokenData.error) {

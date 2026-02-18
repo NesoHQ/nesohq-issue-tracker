@@ -13,11 +13,20 @@ dotenv.config({ path: path.join(serverRoot, '..', '.env') })
 export const PORT = Number(process.env.PORT) || 3001
 
 /** GitHub OAuth client ID */
-export const GITHUB_CLIENT_ID =
-  process.env.GITHUB_CLIENT_ID || process.env.VITE_GITHUB_CLIENT_ID
+export const GITHUB_CLIENT_ID = process.env.GITHUB_CLIENT_ID
 
 /** GitHub OAuth client secret */
 export const GITHUB_CLIENT_SECRET = process.env.GITHUB_CLIENT_SECRET
+
+function parseCsvEnv(value: string | undefined): string[] {
+  return (value || '')
+    .split(',')
+    .map((v) => v.trim())
+    .filter(Boolean)
+}
+
+/** Allowed CORS origins */
+export const CORS_ORIGINS = parseCsvEnv(process.env.CORS_ORIGIN)
 
 /** Directory for uploaded images */
 export const UPLOADS_DIR = path.join(serverRoot, 'uploads')
