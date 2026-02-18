@@ -52,6 +52,14 @@ export interface GitHubIssue {
   pull_request?: { url: string; html_url: string }
 }
 
+export interface GitHubLinkedPullRequest {
+  id: number
+  number: number
+  title: string
+  html_url: string
+  state: 'open' | 'closed'
+}
+
 export interface ListIssuesParams {
   state?: 'open' | 'closed' | 'all'
   labels?: string

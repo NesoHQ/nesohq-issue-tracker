@@ -4,6 +4,7 @@ import type {
   GitHubLabel,
   GitHubUser,
   GitHubMilestone,
+  GitHubLinkedPullRequest,
   ListIssuesParams,
   UpdateIssueParams,
   CreateIssueParams,
@@ -60,6 +61,22 @@ function parseRepoFullName(repo: string): [owner: string, repoName: string] {
   const [owner, repoName] = repo.split('/')
   if (!owner || !repoName) throw new Error(`Invalid repo: ${repo}`)
   return [owner, repoName]
+}
+
+interface IssueTimelineSourceIssue {
+  id?: number
+  number?: number
+  title?: string
+  html_url?: string
+  state?: 'open' | 'closed'
+  pull_request?: { url?: string; html_url?: string }
+}
+
+interface GitHubIssueTimelineEvent {
+  event?: string
+  source?: {
+    issue?: IssueTimelineSourceIssue
+  }
 }
 
 export async function listUserRepos(
@@ -167,4 +184,38 @@ export async function listRepoMilestones(
   const [owner, repo] = parseRepoFullName(repoFullName)
   const url = `${GITHUB_API}/repos/${owner}/${repo}/milestones?state=${state}&per_page=100`
   return request<GitHubMilestone[]>(url, token)
+}
+
+export async function listIssueLinkedPullRequests(
+  token: string,
+  repoFullName: string,
+  issueNumber: number
+): Promise<GitHubLinkedPullRequest[]> {
+  const [owner, repo] = parseRepoFullName(repoFullName)
+  const url = `${GITHUB_API}/repos/${owner}/${repo}/issues/${issueNumber}/timeline?per_page=100`
+  const events = await request<GitHubIssueTimelineEvent[]>(url, token)
+
+  const byId = new Map<number, GitHubLinkedPullRequest>()
+  for (const event of events) {
+    if (event.event !== 'cross-referenced') continue
+    const sourceIssue = event.source?.issue
+    if (!sourceIssue?.pull_request) continue
+    if (
+      typeof sourceIssue.id !== 'number' ||
+      typeof sourceIssue.number !== 'number' ||
+      typeof sourceIssue.title !== 'string' ||
+      typeof sourceIssue.html_url !== 'string'
+    ) {
+      continue
+    }
+    byId.set(sourceIssue.id, {
+      id: sourceIssue.id,
+      number: sourceIssue.number,
+      title: sourceIssue.title,
+      html_url: sourceIssue.html_url,
+      state: sourceIssue.state === 'closed' ? 'closed' : 'open',
+    })
+  }
+
+  return Array.from(byId.values())
 }

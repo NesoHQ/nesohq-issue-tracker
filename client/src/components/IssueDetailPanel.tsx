@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { useIssuesStore } from '../store/issuesStore'
 import { useToast } from '../contexts/ToastContext'
-import { getIssue, updateIssue, listRepoLabels } from '../lib/githubClient'
-import type { GitHubIssue, GitHubLabel } from '../types/github'
+import { getIssue, updateIssue, listRepoLabels, listIssueLinkedPullRequests } from '../lib/githubClient'
+import type { GitHubIssue, GitHubLabel, GitHubLinkedPullRequest } from '../types/github'
 
 function isColorLight(hex: string): boolean {
   const h = hex.replace('#', '')
@@ -34,6 +34,7 @@ export default function IssueDetailPanel({
   const [editTitle, setEditTitle] = useState('')
   const [editBody, setEditBody] = useState('')
   const [labels, setLabels] = useState<Awaited<ReturnType<typeof listRepoLabels>>>([])
+  const [linkedPullRequests, setLinkedPullRequests] = useState<GitHubLinkedPullRequest[]>([])
   const [saving, setSaving] = useState(false)
   const [labelsExpanded, setLabelsExpanded] = useState(true)
 
@@ -43,12 +44,14 @@ export default function IssueDetailPanel({
     Promise.all([
       getIssue(token, repo, issueNumber),
       listRepoLabels(token, repo),
+      listIssueLinkedPullRequests(token, repo, issueNumber),
     ])
-      .then(([i, l]) => {
+      .then(([i, l, prs]) => {
         setIssue(i)
         setEditTitle(i.title)
         setEditBody(i.body || '')
         setLabels(l)
+        setLinkedPullRequests(prs)
       })
       .catch(() => addToast('Failed to load issue', 'error'))
       .finally(() => setLoading(false))
@@ -220,6 +223,35 @@ export default function IssueDetailPanel({
             <option value="open">Open</option>
             <option value="closed">Closed</option>
           </select>
+        </div>
+
+        <div className="mb-4">
+          <label className="block text-xs font-semibold text-gray-500 dark:text-white/50 mb-1">
+            Linked pull requests ({linkedPullRequests.length})
+          </label>
+          {linkedPullRequests.length === 0 ? (
+            <p className="m-0 text-sm text-gray-600 dark:text-white/60">No linked pull requests yet.</p>
+          ) : (
+            <ul className="m-0 p-0 list-none space-y-2">
+              {linkedPullRequests.map((pr) => (
+                <li key={pr.id}>
+                  <a
+                    href={pr.html_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block p-2 rounded-md border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 hover:bg-gray-100 dark:hover:bg-white/10"
+                  >
+                    <div className="text-sm text-blue-600 dark:text-blue-400">
+                      PR #{pr.number}
+                    </div>
+                    <div className="text-sm text-gray-800 dark:text-white/85 break-words">
+                      {pr.title}
+                    </div>
+                  </a>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
 
         <div className="mb-4">
