@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { useIssuesStore } from '../store/issuesStore'
 import { useToast } from '../contexts/ToastContext'
-import { getIssue, updateIssue, listRepoLabels, listIssueLinkedPullRequests } from '../lib/githubClient'
+import { getIssue, updateIssue, listRepoLabels, listIssueLinkedPullRequests, deleteIssue } from '../lib/githubClient'
 import type { GitHubIssue, GitHubLabel, GitHubLinkedPullRequest } from '../types/github'
 
 function isColorLight(hex: string): boolean {
@@ -18,15 +18,17 @@ interface IssueDetailPanelProps {
   repo: string
   issueNumber: number
   onClose: () => void
+  onDeleted?: () => void
 }
 
 export default function IssueDetailPanel({
   repo,
   issueNumber,
   onClose,
+  onDeleted,
 }: IssueDetailPanelProps) {
   const { token } = useAuth()
-  const { updateIssueLocally } = useIssuesStore()
+  const { updateIssueLocally, removeIssueLocally } = useIssuesStore()
   const { addToast } = useToast()
   const [issue, setIssue] = useState<GitHubIssue | null>(null)
   const [loading, setLoading] = useState(true)
@@ -137,6 +139,27 @@ export default function IssueDetailPanel({
     } catch {
       updateIssueLocally(repo, issueNumber, { labels: prev })
       addToast('Failed to update labels', 'error')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleDeleteIssue = async () => {
+    if (!token || !issue) return
+    const confirmed = window.confirm(
+      `Delete issue #${issue.number} from GitHub?\n\nThis cannot be undone.`
+    )
+    if (!confirmed) return
+    setSaving(true)
+    try {
+      await deleteIssue(token, repo, issue.number)
+      removeIssueLocally(repo, issue.number)
+      addToast('Issue deleted from GitHub', 'success')
+      onDeleted?.()
+      onClose()
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to delete issue'
+      addToast(message, 'error')
     } finally {
       setSaving(false)
     }
@@ -324,6 +347,17 @@ export default function IssueDetailPanel({
               {allLabels.map((l) => labelChip(l, selectedLabelNames.includes(l.name)))}
             </div>
           )}
+        </div>
+
+        <div className="pt-3 border-t border-gray-200 dark:border-white/10">
+          <button
+            type="button"
+            onClick={handleDeleteIssue}
+            disabled={saving}
+            className="w-full px-3 py-2 rounded-md border border-red-300 dark:border-red-500/40 bg-red-50 dark:bg-red-500/15 text-red-700 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-500/20 disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            Delete issue from GitHub
+          </button>
         </div>
       </div>
     </div>

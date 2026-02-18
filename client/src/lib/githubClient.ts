@@ -145,6 +145,18 @@ export async function updateIssue(
   })
 }
 
+export async function deleteIssue(
+  token: string,
+  repoFullName: string,
+  issueNumber: number
+): Promise<void> {
+  const [owner, repo] = parseRepoFullName(repoFullName)
+  const url = `${GITHUB_API}/repos/${owner}/${repo}/issues/${issueNumber}`
+  return request<void>(url, token, {
+    method: 'DELETE',
+  })
+}
+
 export async function createIssue(
   token: string,
   repoFullName: string,

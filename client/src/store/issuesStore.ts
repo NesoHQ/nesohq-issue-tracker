@@ -15,6 +15,7 @@ interface IssuesState {
   setHasMore: (repo: string, hasMore: boolean) => void
   setPage: (repo: string, page: number) => void
   updateIssueLocally: (repo: string, issueNumber: number, updates: Partial<GitHubIssue>) => void
+  removeIssueLocally: (repo: string, issueNumber: number) => void
   addIssue: (repo: string, issue: GitHubIssue) => void
   clearIssues: () => void
 
@@ -69,6 +70,16 @@ export const useIssuesStore = create<IssuesState>((set, get) => ({
       const updated = [...repoIssues]
       updated[idx] = { ...updated[idx], ...updates }
       const byRepo = { ...state.issuesByRepo, [repo]: updated }
+      const all = Object.values(byRepo).flat()
+      return { issuesByRepo: byRepo, issues: all }
+    }),
+
+  removeIssueLocally: (repo, issueNumber) =>
+    set((state) => {
+      const repoIssues = state.issuesByRepo[repo] || []
+      const nextRepoIssues = repoIssues.filter((i) => i.number !== issueNumber)
+      if (nextRepoIssues.length === repoIssues.length) return state
+      const byRepo = { ...state.issuesByRepo, [repo]: nextRepoIssues }
       const all = Object.values(byRepo).flat()
       return { issuesByRepo: byRepo, issues: all }
     }),
