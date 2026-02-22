@@ -12,23 +12,26 @@ import { toast } from 'sonner';
 
 interface CreateIssueProps {
   repositories: Repository[];
+  defaultRepoFullName?: string | null;
   onClose: () => void;
   onSuccess: (issue: Issue) => void;
 }
 
 const DRAFT_KEY = 'issue_draft';
 
-export function CreateIssue({ repositories, onClose, onSuccess }: CreateIssueProps) {
+export function CreateIssue({ repositories, defaultRepoFullName, onClose, onSuccess }: CreateIssueProps) {
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
-  const [selectedRepo, setSelectedRepo] = useState<Repository | null>(null);
+  const [selectedRepo, setSelectedRepo] = useState<Repository | null>(
+    () => repositories.find((r) => r.full_name === defaultRepoFullName) ?? null
+  );
   const [selectedLabels, setSelectedLabels] = useState<Label[]>([]);
   const [availableLabels, setAvailableLabels] = useState<Label[]>([]);
   const [labelsLoading, setLabelsLoading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
-  // Restore draft on mount
+  // Restore draft on mount; sidebar selection takes priority over saved draft repo
   useEffect(() => {
     const draft = localStorage.getItem(DRAFT_KEY);
     if (draft) {
@@ -36,7 +39,8 @@ export function CreateIssue({ repositories, onClose, onSuccess }: CreateIssuePro
         const parsed = JSON.parse(draft);
         setTitle(parsed.title || '');
         setBody(parsed.body || '');
-        if (parsed.repoFullName) {
+        // Only restore draft repo when no sidebar repo is active
+        if (!defaultRepoFullName && parsed.repoFullName) {
           const repo = repositories.find((r) => r.full_name === parsed.repoFullName);
           if (repo) setSelectedRepo(repo);
         }

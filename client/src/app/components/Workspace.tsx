@@ -172,6 +172,7 @@ export function Workspace() {
             {view === 'create' && (
               <CreateIssue
                 repositories={repositories}
+                defaultRepoFullName={selectedRepo}
                 onClose={handleCloseDetail}
                 onSuccess={handleIssueCreated}
               />
