@@ -12,6 +12,10 @@ import {
 
 const router = Router()
 
+const MAX_CODE_LENGTH = 512
+const MAX_VERIFIER_LENGTH = 128
+const MAX_URI_LENGTH = 2048
+
 /**
  * GET /api/auth/config
  * Returns non-secret OAuth config required by the frontend.
@@ -34,17 +38,36 @@ router.get('/config', (_req: Request, res: Response): void => {
  */
 router.post('/exchange', async (req: Request, res: Response): Promise<void> => {
   const code = req.body?.code
-  const redirectUri = req.body?.redirect_uri
+  const clientRedirectUri = req.body?.redirect_uri
   const codeVerifier = req.body?.code_verifier
 
-  if (typeof code !== 'string') {
+  if (typeof code !== 'string' || code.length === 0) {
     res.status(400).json({ error: 'Missing code' })
     return
   }
-
-  if (redirectUri != null && typeof redirectUri !== 'string') {
-    res.status(400).json({ error: 'redirect_uri must be a string when provided' })
+  if (code.length > MAX_CODE_LENGTH) {
+    res.status(400).json({ error: 'Invalid code' })
     return
+  }
+
+  if (codeVerifier != null) {
+    if (typeof codeVerifier !== 'string' || codeVerifier.length > MAX_VERIFIER_LENGTH) {
+      res.status(400).json({ error: 'Invalid code_verifier' })
+      return
+    }
+  }
+
+  if (clientRedirectUri != null) {
+    if (typeof clientRedirectUri !== 'string' || clientRedirectUri.length > MAX_URI_LENGTH) {
+      res.status(400).json({ error: 'Invalid redirect_uri' })
+      return
+    }
+    // Reject any redirect_uri that doesn't match the server's configured value.
+    // This prevents an attacker from substituting a different URI in the exchange call.
+    if (GITHUB_REDIRECT_URI && clientRedirectUri !== GITHUB_REDIRECT_URI) {
+      res.status(400).json({ error: 'redirect_uri mismatch' })
+      return
+    }
   }
 
   if (!GITHUB_CLIENT_ID || !GITHUB_CLIENT_SECRET) {
@@ -52,10 +75,11 @@ router.post('/exchange', async (req: Request, res: Response): Promise<void> => {
     return
   }
 
+  // Always use the server-configured redirect_uri; ignore the client-supplied value.
   try {
     const tokenData = await exchangeCodeForToken(
       code,
-      typeof redirectUri === 'string' ? redirectUri : undefined,
+      GITHUB_REDIRECT_URI || undefined,
       typeof codeVerifier === 'string' ? codeVerifier : undefined
     )
 
