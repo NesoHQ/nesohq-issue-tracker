@@ -1,9 +1,9 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router';
-import { ThemeProvider } from 'next-themes';
-import { SignIn } from './components/SignIn';
-import { OAuthCallback } from './components/OAuthCallback';
-import { Workspace } from './components/Workspace';
-import { authService } from './lib/auth';
+import { BrowserRouter, Routes, Route, Navigate } from "react-router";
+import { ThemeProvider } from "next-themes";
+import { SignIn } from "./components/SignIn";
+import { OAuthCallback } from "./components/OAuthCallback";
+import { Workspace } from "./components/Workspace";
+import { authService } from "./lib/auth";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const user = authService.getUser();
