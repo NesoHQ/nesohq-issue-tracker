@@ -33,7 +33,7 @@ export function SignIn() {
         <div className="relative z-10">
           <div className="flex items-center gap-2 text-primary-foreground">
             <Github className="size-8" />
-            <span className="text-2xl font-semibold">IssueFlow</span>
+            <span className="text-2xl font-semibold">NesOHQ Issue Tracker</span>
           </div>
         </div>
         <div className="relative z-10 space-y-6">
@@ -81,7 +81,7 @@ export function SignIn() {
           <div className="text-center space-y-2">
             <div className="lg:hidden flex items-center justify-center gap-2 mb-8">
               <Github className="size-8" />
-              <span className="text-2xl font-semibold">IssueFlow</span>
+              <span className="text-2xl font-semibold">NesOHQ Issue Tracker</span>
             </div>
             <h2 className="text-3xl font-bold">Welcome back</h2>
             <p className="text-muted-foreground">

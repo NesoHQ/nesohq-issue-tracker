@@ -96,7 +96,7 @@ export function Workspace() {
       <div className="h-14 border-b flex items-center justify-between px-4 bg-card">
         <div className="flex items-center gap-3">
           <Github className="size-6" />
-          <h1 className="text-lg font-semibold">IssueFlow</h1>
+          <h1 className="text-lg font-semibold">NesOHQ Issue Tracker</h1>
         </div>
 
         <div className="flex items-center gap-2">
@@ -129,12 +129,22 @@ export function Workspace() {
                 Settings
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleSignOut}>
+              <DropdownMenuItem onClick={handleSignOut} className="text-destructive focus:text-destructive">
                 <LogOut className="size-4 mr-2" />
                 Sign out
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleSignOut}
+            className="gap-2 text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/30"
+          >
+            <LogOut className="size-4" />
+            <span className="hidden sm:inline">Sign out</span>
+          </Button>
         </div>
       </div>
 
