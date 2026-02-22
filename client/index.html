@@ -2,20 +2,13 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>GitHub Issues - Notion-style</title>
+    <title>IssueFlow</title>
+    <!-- Runtime config: edit public/config.js per environment, never bake API URLs into the build -->
+    <script src="/config.js"></script>
   </head>
   <body>
-    <script>
-      (function() {
-        const stored = localStorage.getItem('app_theme');
-        const dark = stored === 'dark' || (!stored && window.matchMedia('(prefers-color-scheme: dark)').matches);
-        document.documentElement.classList.toggle('dark', dark);
-      })();
-    </script>
     <div id="root"></div>
-    <script src="/config.js"></script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

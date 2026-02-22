@@ -1,6 +1,6 @@
 # Server
 
-Express auth server for OAuth token exchange and image uploads.
+Express auth server for OAuth token exchange.
 
 ## Structure
 
@@ -11,14 +11,10 @@ server/
 ├── config/            # Configuration
 │   └── index.ts       # Env vars, paths, helpers
 ├── constants/         # App constants
-│   └── index.ts       # URLs, limits, MIME types
-├── middleware/        # Express middleware
-│   ├── index.ts
-│   └── upload.ts      # Multer config for image uploads
+│   └── index.ts       # GitHub API URLs
 ├── routes/            # API routes
 │   ├── index.ts       # Mounts all routes under /api
-│   ├── auth.routes.ts # POST /api/auth/exchange
-│   └── upload.routes.ts # POST /api/upload
+│   └── auth.routes.ts # POST /api/auth/exchange
 └── services/          # Business logic / external APIs
     ├── index.ts
     └── github.service.ts # OAuth token exchange, fetch user

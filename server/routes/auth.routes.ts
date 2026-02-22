@@ -1,6 +1,10 @@
 import type { Request, Response } from 'express'
 import { Router } from 'express'
-import { GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET } from '../config'
+import {
+  GITHUB_CLIENT_ID,
+  GITHUB_CLIENT_SECRET,
+  GITHUB_REDIRECT_URI,
+} from '../config'
 import {
   exchangeCodeForToken,
   fetchGitHubUser,
@@ -18,7 +22,10 @@ router.get('/config', (_req: Request, res: Response): void => {
     return
   }
 
-  res.json({ client_id: GITHUB_CLIENT_ID })
+  res.json({
+    client_id: GITHUB_CLIENT_ID,
+    redirect_uri: GITHUB_REDIRECT_URI || null,
+  })
 })
 
 /**
@@ -30,8 +37,13 @@ router.post('/exchange', async (req: Request, res: Response): Promise<void> => {
   const redirectUri = req.body?.redirect_uri
   const codeVerifier = req.body?.code_verifier
 
-  if (typeof code !== 'string' || typeof redirectUri !== 'string') {
-    res.status(400).json({ error: 'Missing code or redirect_uri' })
+  if (typeof code !== 'string') {
+    res.status(400).json({ error: 'Missing code' })
+    return
+  }
+
+  if (redirectUri != null && typeof redirectUri !== 'string') {
+    res.status(400).json({ error: 'redirect_uri must be a string when provided' })
     return
   }
 
@@ -43,7 +55,7 @@ router.post('/exchange', async (req: Request, res: Response): Promise<void> => {
   try {
     const tokenData = await exchangeCodeForToken(
       code,
-      redirectUri,
+      typeof redirectUri === 'string' ? redirectUri : undefined,
       typeof codeVerifier === 'string' ? codeVerifier : undefined
     )
 

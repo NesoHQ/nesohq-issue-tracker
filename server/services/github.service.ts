@@ -56,15 +56,15 @@ function asGitHubUser(value: unknown): GitHubUser | null {
  */
 export async function exchangeCodeForToken(
   code: string,
-  redirectUri: string,
+  redirectUri?: string,
   codeVerifier?: string
 ): Promise<TokenResponse> {
   const body: Record<string, string> = {
     client_id: GITHUB_CLIENT_ID!,
     client_secret: GITHUB_CLIENT_SECRET!,
     code,
-    redirect_uri: redirectUri,
   }
+  if (redirectUri) body.redirect_uri = redirectUri
   if (codeVerifier) body.code_verifier = codeVerifier
 
   const res = await fetch(GITHUB_TOKEN_URL, {

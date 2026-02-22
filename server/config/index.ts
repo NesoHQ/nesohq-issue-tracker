@@ -1,5 +1,4 @@
 import path from 'path'
-import fs from 'fs'
 import { fileURLToPath } from 'url'
 import dotenv from 'dotenv'
 
@@ -18,6 +17,9 @@ export const GITHUB_CLIENT_ID = process.env.GITHUB_CLIENT_ID
 /** GitHub OAuth client secret */
 export const GITHUB_CLIENT_SECRET = process.env.GITHUB_CLIENT_SECRET
 
+/** Optional canonical GitHub OAuth callback URL */
+export const GITHUB_REDIRECT_URI = process.env.GITHUB_REDIRECT_URI
+
 function parseCsvEnv(value: string | undefined): string[] {
   return (value || '')
     .split(',')
@@ -27,26 +29,6 @@ function parseCsvEnv(value: string | undefined): string[] {
 
 /** Allowed CORS origins */
 export const CORS_ORIGINS = parseCsvEnv(process.env.CORS_ORIGIN)
-
-/** Directory for uploaded images */
-export const UPLOADS_DIR = path.join(serverRoot, 'uploads')
-
-/** Ensure uploads directory exists */
-export function ensureUploadsDir(): void {
-  if (!fs.existsSync(UPLOADS_DIR)) {
-    fs.mkdirSync(UPLOADS_DIR, { recursive: true })
-  }
-}
-
-/** Base URL for API (used for upload URLs) */
-export function getApiBaseUrl(reqOrigin?: string): string {
-  return (
-    process.env.API_PUBLIC_URL ||
-    process.env.VITE_API_URL ||
-    reqOrigin ||
-    `http://localhost:${PORT}`
-  )
-}
 
 /** Log a warning if OAuth is not configured */
 export function warnIfOAuthNotConfigured(): void {
