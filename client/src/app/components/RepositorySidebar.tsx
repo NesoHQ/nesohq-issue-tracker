@@ -3,8 +3,23 @@ import { Repository } from '../lib/types';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { ScrollArea } from './ui/scroll-area';
-import { Search, X, Lock, Globe } from 'lucide-react';
+import { Search, X, Lock, Globe, Pin, PinOff } from 'lucide-react';
 import { cn } from '../lib/utils';
+
+const PINS_KEY = 'pinned-repos';
+
+function loadPins(): Set<string> {
+  try {
+    const raw = localStorage.getItem(PINS_KEY);
+    return new Set(raw ? (JSON.parse(raw) as string[]) : []);
+  } catch {
+    return new Set();
+  }
+}
+
+function savePins(pins: Set<string>) {
+  localStorage.setItem(PINS_KEY, JSON.stringify([...pins]));
+}
 
 interface RepositorySidebarProps {
   repositories: Repository[];
@@ -17,29 +32,41 @@ export function RepositorySidebar({
   repositories,
   selectedRepo,
   onSelectionChange,
-  className
+  className,
 }: RepositorySidebarProps) {
   const [search, setSearch] = useState('');
+  const [pinnedIds, setPinnedIds] = useState<Set<string>>(loadPins);
 
-  const filteredRepos = repositories.filter(repo =>
-    repo.name.toLowerCase().includes(search.toLowerCase()) ||
-    repo.full_name.toLowerCase().includes(search.toLowerCase())
-  );
+  const togglePin = (e: React.MouseEvent, repoId: string) => {
+    e.stopPropagation();
+    setPinnedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(repoId)) {
+        next.delete(repoId);
+      } else {
+        next.add(repoId);
+      }
+      savePins(next);
+      return next;
+    });
+  };
 
   const handleRepoClick = (repoId: string) => {
-    if (selectedRepo === repoId) {
-      onSelectionChange(null);
-    } else {
-      onSelectionChange(repoId);
-    }
+    onSelectionChange(selectedRepo === repoId ? null : repoId);
   };
 
-  const clearSelection = () => {
-    onSelectionChange(null);
-  };
+  const filtered = repositories.filter(
+    (r) =>
+      r.name.toLowerCase().includes(search.toLowerCase()) ||
+      r.full_name.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const pinned = filtered.filter((r) => pinnedIds.has(r.id));
+  const others = filtered.filter((r) => !pinnedIds.has(r.id));
 
   return (
-    <div className={cn("flex flex-col h-full border-r bg-sidebar", className)}>
+    <div className={cn('flex flex-col h-full border-r bg-sidebar', className)}>
+      {/* Header */}
       <div className="p-4 border-b space-y-3">
         <div className="flex items-center justify-between">
           <h3 className="font-semibold text-sidebar-foreground">Repositories</h3>
@@ -47,14 +74,14 @@ export function RepositorySidebar({
             <Button
               variant="ghost"
               size="sm"
-              onClick={clearSelection}
+              onClick={() => onSelectionChange(null)}
               className="h-7 text-xs"
             >
               Clear
             </Button>
           )}
         </div>
-        
+
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
           <Input
@@ -78,42 +105,101 @@ export function RepositorySidebar({
 
       <ScrollArea className="flex-1">
         <div className="p-2 space-y-1">
-          {filteredRepos.length === 0 ? (
+          {filtered.length === 0 ? (
             <div className="text-center py-8 text-sm text-muted-foreground">
               No repositories found
             </div>
           ) : (
-            filteredRepos.map((repo) => (
-              <div
-                key={repo.id}
-                className={cn(
-                  "flex items-start gap-3 p-3 rounded-lg cursor-pointer hover:bg-sidebar-accent transition-colors",
-                  selectedRepo === repo.id && "bg-sidebar-accent ring-2 ring-sidebar-ring"
-                )}
-                onClick={() => handleRepoClick(repo.id)}
-              >
-                <div className="flex-1 min-w-0 space-y-1">
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium text-sm truncate text-sidebar-foreground">
-                      {repo.name}
-                    </span>
-                    {repo.private ? (
-                      <Lock className="size-3 text-muted-foreground flex-shrink-0" />
-                    ) : (
-                      <Globe className="size-3 text-muted-foreground flex-shrink-0" />
-                    )}
-                  </div>
-                  {repo.description && (
-                    <p className="text-xs text-muted-foreground line-clamp-2">
-                      {repo.description}
+            <>
+              {/* Pinned section */}
+              {pinned.length > 0 && (
+                <>
+                  <p className="px-2 pt-1 pb-0.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    Pinned
+                  </p>
+                  {pinned.map((repo) => (
+                    <RepoRow
+                      key={repo.id}
+                      repo={repo}
+                      selected={selectedRepo === repo.id}
+                      pinned
+                      onClick={() => handleRepoClick(repo.id)}
+                      onTogglePin={(e) => togglePin(e, repo.id)}
+                    />
+                  ))}
+                  {others.length > 0 && (
+                    <p className="px-2 pt-3 pb-0.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                      All
                     </p>
                   )}
-                </div>
-              </div>
-            ))
+                </>
+              )}
+
+              {/* Unpinned repos */}
+              {others.map((repo) => (
+                <RepoRow
+                  key={repo.id}
+                  repo={repo}
+                  selected={selectedRepo === repo.id}
+                  pinned={false}
+                  onClick={() => handleRepoClick(repo.id)}
+                  onTogglePin={(e) => togglePin(e, repo.id)}
+                />
+              ))}
+            </>
           )}
         </div>
       </ScrollArea>
+    </div>
+  );
+}
+
+interface RepoRowProps {
+  repo: Repository;
+  selected: boolean;
+  pinned: boolean;
+  onClick: () => void;
+  onTogglePin: (e: React.MouseEvent) => void;
+}
+
+function RepoRow({ repo, selected, pinned, onClick, onTogglePin }: RepoRowProps) {
+  return (
+    <div
+      className={cn(
+        'group flex items-start gap-2 p-3 rounded-lg cursor-pointer hover:bg-sidebar-accent transition-colors',
+        selected && 'bg-sidebar-accent ring-2 ring-sidebar-ring'
+      )}
+      onClick={onClick}
+    >
+      <div className="flex-1 min-w-0 space-y-1">
+        <div className="flex items-center gap-2">
+          <span className="font-medium text-sm truncate text-sidebar-foreground">
+            {repo.name}
+          </span>
+          {repo.private ? (
+            <Lock className="size-3 text-muted-foreground flex-shrink-0" />
+          ) : (
+            <Globe className="size-3 text-muted-foreground flex-shrink-0" />
+          )}
+        </div>
+        {repo.description && (
+          <p className="text-xs text-muted-foreground line-clamp-2">{repo.description}</p>
+        )}
+      </div>
+
+      {/* Pin button */}
+      <button
+        onClick={onTogglePin}
+        title={pinned ? 'Unpin repository' : 'Pin repository'}
+        className={cn(
+          'flex-shrink-0 mt-0.5 p-1 rounded transition-all',
+          pinned
+            ? 'text-amber-500 hover:text-amber-600 opacity-100'
+            : 'text-muted-foreground opacity-0 group-hover:opacity-100 hover:text-foreground'
+        )}
+      >
+        {pinned ? <Pin className="size-3.5 fill-amber-500" /> : <Pin className="size-3.5" />}
+      </button>
     </div>
   );
 }
