@@ -210,4 +210,38 @@ export const githubApi = {
     );
     return data.map(mapLabel);
   },
+
+  async getLinkedPRs(repoFullName: string, issueNumber: number): Promise<import('./types').PullRequest[]> {
+    const events = await ghJson<Record<string, unknown>[]>(
+      `/repos/${repoFullName}/issues/${issueNumber}/timeline?per_page=100`
+    );
+
+    const prs: import('./types').PullRequest[] = [];
+    const seen = new Set<number>();
+
+    for (const event of events) {
+      if (event.event !== 'cross-referenced') continue;
+      const source = event.source as Record<string, unknown> | undefined;
+      if (!source || source.type !== 'issue') continue;
+      const sourceIssue = source.issue as Record<string, unknown> | undefined;
+      if (!sourceIssue || !sourceIssue.pull_request) continue;
+
+      const prNum = sourceIssue.number as number;
+      if (seen.has(prNum)) continue;
+      seen.add(prNum);
+
+      const rawPr = sourceIssue.pull_request as Record<string, unknown>;
+      const isMerged = !!rawPr.merged_at;
+
+      prs.push({
+        id: String(sourceIssue.id),
+        number: prNum,
+        title: sourceIssue.title as string,
+        state: isMerged ? 'merged' : (sourceIssue.state as 'open' | 'closed'),
+        html_url: sourceIssue.html_url as string,
+      });
+    }
+
+    return prs;
+  },
 };

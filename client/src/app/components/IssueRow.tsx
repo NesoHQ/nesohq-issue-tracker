@@ -1,8 +1,9 @@
-import { Issue, Label } from '../lib/types';
+import { Issue, Label, PullRequest } from '../lib/types';
 import { Badge } from './ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
 import { formatRelativeDate, getContrastColor } from '../lib/utils';
-import { Circle, CircleDot, GitPullRequest } from 'lucide-react';
+import { Circle, CircleDot, GitPullRequest, GitMerge, GitPullRequestClosed } from 'lucide-react';
 
 interface IssueRowProps {
   issue: Issue;
@@ -10,7 +11,30 @@ interface IssueRowProps {
   onClick: () => void;
 }
 
+function prBadgeProps(prs: PullRequest[]) {
+  const open = prs.filter((p) => p.state === 'open').length;
+  const merged = prs.filter((p) => p.state === 'merged').length;
+  const closed = prs.filter((p) => p.state === 'closed').length;
+
+  const parts: string[] = [];
+  if (open) parts.push(`${open} open`);
+  if (merged) parts.push(`${merged} merged`);
+  if (closed) parts.push(`${closed} closed`);
+  const tooltip = parts.join(' · ');
+
+  if (open > 0) {
+    return { icon: GitPullRequest, color: 'text-green-600', borderColor: 'border-green-500/50', tooltip };
+  }
+  if (merged > 0) {
+    return { icon: GitMerge, color: 'text-purple-500', borderColor: 'border-purple-500/50', tooltip };
+  }
+  return { icon: GitPullRequestClosed, color: 'text-muted-foreground', borderColor: 'border-border', tooltip };
+}
+
 export function IssueRow({ issue, selected, onClick }: IssueRowProps) {
+  const prs = issue.linked_prs ?? [];
+  const badge = prs.length > 0 ? prBadgeProps(prs) : null;
+
   return (
     <div
       className={`
@@ -34,11 +58,23 @@ export function IssueRow({ issue, selected, onClick }: IssueRowProps) {
           <div className="flex-1 min-w-0 space-y-2">
             <div className="flex items-start justify-between gap-4">
               <h4 className="font-medium leading-snug">{issue.title}</h4>
-              {issue.linked_prs && issue.linked_prs.length > 0 && (
-                <Badge variant="outline" className="flex items-center gap-1 flex-shrink-0">
-                  <GitPullRequest className="size-3" />
-                  <span>{issue.linked_prs.length}</span>
-                </Badge>
+              {badge && (
+                <TooltipProvider delayDuration={200}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Badge
+                        variant="outline"
+                        className={`flex items-center gap-1 flex-shrink-0 ${badge.borderColor}`}
+                      >
+                        <badge.icon className={`size-3 ${badge.color}`} />
+                        <span className={`text-xs ${badge.color}`}>{prs.length}</span>
+                      </Badge>
+                    </TooltipTrigger>
+                    <TooltipContent side="left">
+                      <p className="text-xs">{badge.tooltip}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               )}
             </div>
 

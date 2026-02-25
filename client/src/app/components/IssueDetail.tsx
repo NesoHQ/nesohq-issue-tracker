@@ -36,6 +36,7 @@ export function IssueDetail({ issue, onClose, onUpdate, onDelete }: IssueDetailP
   const [bodyValue, setBodyValue] = useState(issue.body);
   const [availableLabels, setAvailableLabels] = useState<Label[]>([]);
   const [updating, setUpdating] = useState(false);
+  const [loadingPRs, setLoadingPRs] = useState(false);
 
   useEffect(() => {
     setCurrentIssue(issue);
@@ -51,6 +52,22 @@ export function IssueDetail({ issue, onClose, onUpdate, onDelete }: IssueDetailP
       .then(setAvailableLabels)
       .catch(() => setAvailableLabels([]));
   }, [currentIssue.repository.full_name]);
+
+  useEffect(() => {
+    setLoadingPRs(true);
+    githubApi
+      .getLinkedPRs(currentIssue.repository.full_name, currentIssue.number)
+      .then((prs) => {
+        setCurrentIssue((prev) => {
+          const updated = { ...prev, linked_prs: prs };
+          onUpdate(updated);
+          return updated;
+        });
+      })
+      .catch(() => {})
+      .finally(() => setLoadingPRs(false));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentIssue.repository.full_name, currentIssue.number]);
 
   const handleUpdateTitle = async () => {
     if (titleValue.trim() === currentIssue.title) {
@@ -279,9 +296,15 @@ export function IssueDetail({ issue, onClose, onUpdate, onDelete }: IssueDetailP
           )}
 
           {/* Linked PRs */}
-          {currentIssue.linked_prs && currentIssue.linked_prs.length > 0 && (
-            <div className="space-y-2">
-              <h3 className="text-sm font-medium">Linked Pull Requests</h3>
+          <div className="space-y-2">
+            <h3 className="text-sm font-medium flex items-center gap-2">
+              Linked Pull Requests
+              {loadingPRs && <Loader2 className="size-3 animate-spin text-muted-foreground" />}
+            </h3>
+            {!loadingPRs && (!currentIssue.linked_prs || currentIssue.linked_prs.length === 0) && (
+              <p className="text-sm text-muted-foreground italic">No linked pull requests</p>
+            )}
+            {currentIssue.linked_prs && currentIssue.linked_prs.length > 0 && (
               <div className="space-y-2">
                 {currentIssue.linked_prs.map((pr) => (
                   <div
@@ -308,8 +331,8 @@ export function IssueDetail({ issue, onClose, onUpdate, onDelete }: IssueDetailP
                   </div>
                 ))}
               </div>
-            </div>
-          )}
+            )}
+          </div>
 
           {/* Body */}
           <div className="space-y-2">

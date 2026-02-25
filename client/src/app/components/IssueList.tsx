@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Issue } from '../lib/types';
 import { IssueRow } from './IssueRow';
 import { Button } from './ui/button';
@@ -13,6 +13,7 @@ interface IssueListProps {
   selectedIssueId?: string;
   onIssueSelect: (issue: Issue) => void;
   onCreateClick: () => void;
+  patchIssue?: Issue;
 }
 
 export function IssueList({
@@ -20,6 +21,7 @@ export function IssueList({
   selectedIssueId,
   onIssueSelect,
   onCreateClick,
+  patchIssue,
 }: IssueListProps) {
   const [issues, setIssues] = useState<Issue[]>([]);
   const [loading, setLoading] = useState(true);
@@ -30,6 +32,8 @@ export function IssueList({
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [stateFilter, setStateFilter] = useState<'all' | 'open' | 'closed'>('open');
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Incremented on every new batch so stale async callbacks self-cancel
+  const prBatchRef = useRef(0);
 
   // Debounce search input 500 ms to avoid hammering GitHub API
   useEffect(() => {
@@ -41,8 +45,40 @@ export function IssueList({
   }, [search]);
 
   useEffect(() => {
+    prBatchRef.current++; // cancel any in-flight PR batch
     loadIssues(true);
   }, [selectedRepo, debouncedSearch, stateFilter]);
+
+  useEffect(() => {
+    if (!patchIssue) return;
+    setIssues((prev) =>
+      prev.map((i) => (i.id === patchIssue.id ? patchIssue : i))
+    );
+  }, [patchIssue]);
+
+  const fetchLinkedPRsForIssues = useCallback(async (batch: Issue[]) => {
+    const batchId = ++prBatchRef.current;
+    for (const issue of batch) {
+      // Bail out if a newer batch has started (filter/search changed)
+      if (prBatchRef.current !== batchId) return;
+      try {
+        const prs = await githubApi.getLinkedPRs(
+          issue.repository.full_name,
+          issue.number
+        );
+        if (prBatchRef.current !== batchId) return;
+        if (prs.length > 0) {
+          setIssues((prev) =>
+            prev.map((i) => (i.id === issue.id ? { ...i, linked_prs: prs } : i))
+          );
+        }
+      } catch {
+        // ignore per-issue errors; badge simply won't show
+      }
+      // Small stagger to stay well within GitHub's 5 000 req/hr rate limit
+      await new Promise((r) => setTimeout(r, 80));
+    }
+  }, []);
 
   const loadIssues = async (reset = false) => {
     if (reset) {
@@ -72,6 +108,9 @@ export function IssueList({
       if (!reset) {
         setPage((prev) => prev + 1);
       }
+
+      // Kick off background PR fetch for the new batch of issues
+      fetchLinkedPRsForIssues(result.issues);
     } catch (error) {
       console.error('Failed to load issues:', error);
     } finally {

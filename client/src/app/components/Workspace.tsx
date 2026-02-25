@@ -177,6 +177,7 @@ export function Workspace() {
                 selectedIssueId={selectedIssue?.id}
                 onIssueSelect={handleIssueSelect}
                 onCreateClick={handleCreateClick}
+                patchIssue={selectedIssue ?? undefined}
               />
             )}
             {view === 'create' && (
@@ -193,6 +194,7 @@ export function Workspace() {
                 selectedIssueId={selectedIssue.id}
                 onIssueSelect={handleIssueSelect}
                 onCreateClick={handleCreateClick}
+                patchIssue={selectedIssue}
               />
             )}
           </ResizablePanel>
