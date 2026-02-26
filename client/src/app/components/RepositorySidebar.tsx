@@ -171,7 +171,7 @@ function RepoRow({ repo, selected, pinned, onClick, onTogglePin }: RepoRowProps)
       )}
       onClick={onClick}
     >
-      <div className="flex-1 min-w-0 space-y-1">
+      <div className="flex-1 w-5 space-y-1">
         <div className="flex items-center gap-2">
           <span className="font-medium text-sm truncate text-sidebar-foreground">
             {repo.name}
