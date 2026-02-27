@@ -1,8 +1,12 @@
+'use client';
+
 import { useEffect, useState, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { authService } from '../lib/auth';
 
 export function OAuthCallback() {
+  const router = useRouter();
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
   const [errorMessage, setErrorMessage] = useState<string>('');
   const hasRun = useRef(false);
@@ -34,7 +38,7 @@ export function OAuthCallback() {
         await authService.completeGitHubOAuth(code, state);
         setStatus('success');
         setTimeout(() => {
-          window.location.href = '/workspace';
+          router.push('/workspace');
         }, 1000);
       } catch (error) {
         setErrorMessage(error instanceof Error ? error.message : 'Authentication failed');
@@ -43,7 +47,7 @@ export function OAuthCallback() {
     };
 
     run();
-  }, []);
+  }, [router]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background">

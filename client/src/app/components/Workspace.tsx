@@ -1,4 +1,7 @@
+'use client';
+
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Repository, Issue } from '../lib/types';
 import { authService } from '../lib/auth';
 import { githubApi } from '../lib/github-api';
@@ -17,6 +20,7 @@ import { Toaster } from './ui/sonner';
 type View = 'issues' | 'create' | 'detail';
 
 export function Workspace() {
+  const router = useRouter();
   const { theme, setTheme } = useTheme();
   const [repositories, setRepositories] = useState<Repository[]>([]);
   const [selectedRepo, setSelectedRepo] = useState<string | null>(null);
@@ -77,7 +81,7 @@ export function Workspace() {
 
   const handleSignOut = () => {
     authService.signOut();
-    window.location.href = '/';
+    router.push('/');
   };
 
   if (loading) {
