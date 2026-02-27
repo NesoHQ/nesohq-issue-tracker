@@ -1,0 +1,81 @@
+name: Build and Push Docker Images
+
+on:
+  push:
+    branches: [master]
+    tags:
+      - 'v*.*.*'
+
+env:
+  REGISTRY_GHCR: ghcr.io
+  IMAGE_PREFIX: nesohq/nesohq-issue-tracker
+
+jobs:
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      client: ${{ steps.filter.outputs.client }}
+      server: ${{ steps.filter.outputs.server }}
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Detect changed services
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            client:
+              - 'client/**'
+            server:
+              - 'server/**'
+
+  build-and-push:
+    needs: detect-changes
+    if: github.event_name != 'pull_request'
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        service: [client, server]
+    uses: ./.github/workflows/docker-build.yml
+    with:
+      service: ${{ matrix.service }}
+      should-build: ${{ needs.detect-changes.outputs[matrix.service] == 'true' || github.ref_type == 'tag' }}
+    secrets: inherit
+
+  # Trigger infrastructure deployment after successful builds
+  update-deployment:
+    needs: [detect-changes, build-and-push]
+    # Trigger if at least one build succeeded (not cancelled or skipped)
+    if: |
+      always() && 
+      github.ref == 'refs/heads/master' &&
+      needs.build-and-push.result != 'cancelled' &&
+      needs.build-and-push.result != 'skipped'
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 🚀 Trigger Infrastructure Deployment
+        run: |
+          curl -X POST \
+            -H "Authorization: token ${{ secrets.INFRA_REPO_TOKEN }}" \
+            -H "Accept: application/vnd.github.v3+json" \
+            https://api.github.com/repos/opskraken/nesohq-infra/dispatches \
+            -d '{"event_type":"deploy-staging"}'
+      
+      - name: 📝 Deployment Summary
+        run: |
+          echo "## 🚀 Deployment Triggered" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Status:** ✅ Infrastructure deployment triggered" >> $GITHUB_STEP_SUMMARY
+          echo "**Repository:** nesohq/nesohq-issue-tracker" >> $GITHUB_STEP_SUMMARY
+          echo "**Event:** deploy-nesohq-issue-tracker" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Note:** Deployment triggered even if some builds failed" >> $GITHUB_STEP_SUMMARY
+          echo "**Built Images:**" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "ghcr.io/nesohq/nesohq-issue-tracker/client:${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "ghcr.io/nesohq/nesohq-issue-tracker/server:${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY

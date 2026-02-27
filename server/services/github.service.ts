@@ -1,4 +1,4 @@
-import { GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET } from '../config'
+import { GH_CLIENT_ID, GH_CLIENT_SECRET } from '../config'
 import { GITHUB_TOKEN_URL, GITHUB_USER_URL } from '../constants'
 
 export interface TokenResponse {
@@ -60,8 +60,8 @@ export async function exchangeCodeForToken(
   codeVerifier?: string
 ): Promise<TokenResponse> {
   const body: Record<string, string> = {
-    client_id: GITHUB_CLIENT_ID!,
-    client_secret: GITHUB_CLIENT_SECRET!,
+    client_id: GH_CLIENT_ID!,
+    client_secret: GH_CLIENT_SECRET!,
     code,
   }
   if (redirectUri) body.redirect_uri = redirectUri

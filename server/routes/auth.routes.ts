@@ -1,9 +1,9 @@
 import type { Request, Response } from 'express'
 import { Router } from 'express'
 import {
-  GITHUB_CLIENT_ID,
-  GITHUB_CLIENT_SECRET,
-  GITHUB_REDIRECT_URI,
+  GH_CLIENT_ID,
+  GH_CLIENT_SECRET,
+  GH_REDIRECT_URI,
 } from '../config'
 import {
   exchangeCodeForToken,
@@ -21,14 +21,14 @@ const MAX_URI_LENGTH = 2048
  * Returns non-secret OAuth config required by the frontend.
  */
 router.get('/config', (_req: Request, res: Response): void => {
-  if (!GITHUB_CLIENT_ID) {
+  if (!GH_CLIENT_ID) {
     res.status(500).json({ error: 'OAuth not configured' })
     return
   }
 
   res.json({
-    client_id: GITHUB_CLIENT_ID,
-    redirect_uri: GITHUB_REDIRECT_URI || null,
+    client_id: GH_CLIENT_ID,
+    redirect_uri: GH_REDIRECT_URI || null,
   })
 })
 
@@ -64,13 +64,13 @@ router.post('/exchange', async (req: Request, res: Response): Promise<void> => {
     }
     // Reject any redirect_uri that doesn't match the server's configured value.
     // This prevents an attacker from substituting a different URI in the exchange call.
-    if (GITHUB_REDIRECT_URI && clientRedirectUri !== GITHUB_REDIRECT_URI) {
+    if (GH_REDIRECT_URI && clientRedirectUri !== GH_REDIRECT_URI) {
       res.status(400).json({ error: 'redirect_uri mismatch' })
       return
     }
   }
 
-  if (!GITHUB_CLIENT_ID || !GITHUB_CLIENT_SECRET) {
+  if (!GH_CLIENT_ID || !GH_CLIENT_SECRET) {
     res.status(500).json({ error: 'OAuth not configured' })
     return
   }
@@ -79,7 +79,7 @@ router.post('/exchange', async (req: Request, res: Response): Promise<void> => {
   try {
     const tokenData = await exchangeCodeForToken(
       code,
-      GITHUB_REDIRECT_URI || undefined,
+      GH_REDIRECT_URI || undefined,
       typeof codeVerifier === 'string' ? codeVerifier : undefined
     )
 
