@@ -6,76 +6,32 @@
  */
 
 import { cache } from 'react';
-import { getAuthToken } from '@/lib/auth/cookies';
 import { API_CONFIG } from '@/lib/constants';
 import type { Repository, Issue, Label, PullRequest, User } from '@/lib/types';
+import {
+  mapGitHubIssue,
+  mapGitHubLabel,
+  mapGitHubRepository,
+  mapGitHubUser,
+  type GitHubIssuePayload,
+  type GitHubLabelPayload,
+  type GitHubRepositoryPayload,
+  type GitHubUserPayload,
+} from '@/lib/github/mappers';
+import { githubReadJson } from '@/lib/github/server';
 
-const { GITHUB_API, GITHUB_VERSION, DEFAULT_PER_PAGE } = API_CONFIG;
-
-/**
- * GitHub API fetch wrapper with authentication
- */
-async function githubFetch(path: string, options?: RequestInit): Promise<Response> {
-  const token = await getAuthToken();
-  
-  if (!token) {
-    throw new Error('Not authenticated');
-  }
-
-  const response = await fetch(`${GITHUB_API}${path}`, {
-    ...options,
-    headers: {
-      Authorization: `Bearer ${token}`,
-      Accept: 'application/vnd.github+json',
-      'X-GitHub-Api-Version': GITHUB_VERSION,
-      ...(options?.headers ?? {}),
-    },
-    next: {
-      revalidate: 60, // Cache for 60 seconds
-      tags: ['github'],
-    },
-  });
-
-  if (response.status === 401) {
-    throw new Error('Session expired. Please sign in again.');
-  }
-
-  if (!response.ok) {
-    let message = `GitHub API error: ${response.status}`;
-    try {
-      const err = await response.json();
-      if (err?.message) message = err.message;
-    } catch {
-      // ignore parse error
-    }
-    throw new Error(message);
-  }
-
-  return response;
-}
+const { DEFAULT_PER_PAGE } = API_CONFIG;
 
 /**
  * Get user's repositories
  * Cached and deduplicated across components
  */
 export const getRepositories = cache(async (): Promise<Repository[]> => {
-  const response = await githubFetch(
+  const data = await githubReadJson<GitHubRepositoryPayload[]>(
     '/user/repos?per_page=100&sort=updated&affiliation=owner,collaborator,organization_member'
   );
-  
-  const data = await response.json();
-  
-  return data.map((r: any) => ({
-    id: r.full_name,
-    name: r.name,
-    full_name: r.full_name,
-    owner: {
-      login: r.owner.login,
-      avatar_url: r.owner.avatar_url,
-    },
-    private: r.private,
-    description: r.description ?? undefined,
-  }));
+
+  return data.map(mapGitHubRepository);
 });
 
 /**
@@ -83,16 +39,8 @@ export const getRepositories = cache(async (): Promise<Repository[]> => {
  * This is the source of truth for identity in the workspace.
  */
 export async function getAuthenticatedUser(): Promise<User> {
-  const response = await githubFetch('/user');
-  const user = await response.json();
-
-  return {
-    id: String(user.id ?? user.login),
-    login: user.login,
-    name: user.name ?? user.login,
-    avatar_url: user.avatar_url,
-    email: user.email ?? undefined,
-  };
+  const user = await githubReadJson<GitHubUserPayload>('/user');
+  return mapGitHubUser(user);
 }
 
 /**
@@ -105,6 +53,10 @@ export async function getIssues(
   page = 1,
   perPage = DEFAULT_PER_PAGE
 ): Promise<{ issues: Issue[]; hasMore: boolean }> {
+  interface GitHubSearchIssuesPayload {
+    items?: GitHubIssuePayload[];
+  }
+
   let path: string;
   
   if (search.trim()) {
@@ -119,13 +71,12 @@ export async function getIssues(
     path = `/issues?state=${state}&filter=all&per_page=${perPage}&page=${page}&sort=updated`;
   }
 
-  const response = await githubFetch(path);
-  const data = await response.json();
-  
-  const items = Array.isArray(data) ? data : data.items || [];
+  const data = await githubReadJson<GitHubIssuePayload[] | GitHubSearchIssuesPayload>(path);
+
+  const items = Array.isArray(data) ? data : data.items ?? [];
   
   return {
-    issues: items.map(mapIssue),
+    issues: items.map((item) => mapGitHubIssue(item)),
     hasMore: items.length === perPage,
   };
 }
@@ -134,15 +85,9 @@ export async function getIssues(
  * Get labels for a repository
  */
 export const getLabels = cache(async (repoFullName: string): Promise<Label[]> => {
-  const response = await githubFetch(`/repos/${repoFullName}/labels?per_page=100`);
-  const data = await response.json();
-  
-  return data.map((l: any) => ({
-    id: String(l.id),
-    name: l.name,
-    color: l.color,
-    description: l.description ?? undefined,
-  }));
+  const data = await githubReadJson<GitHubLabelPayload[]>(`/repos/${repoFullName}/labels?per_page=100`);
+
+  return data.map(mapGitHubLabel);
 });
 
 /**
@@ -152,10 +97,26 @@ export async function getLinkedPRs(
   repoFullName: string,
   issueNumber: number
 ): Promise<PullRequest[]> {
-  const response = await githubFetch(
+  interface GitHubIssueTimelineEvent {
+    event?: string;
+    source?: {
+      type?: string;
+      issue?: {
+        id: number | string;
+        number: number;
+        title: string;
+        state: 'open' | 'closed';
+        html_url: string;
+        pull_request?: {
+          merged_at?: string | null;
+        };
+      };
+    };
+  }
+
+  const events = await githubReadJson<GitHubIssueTimelineEvent[]>(
     `/repos/${repoFullName}/issues/${issueNumber}/timeline?per_page=100`
   );
-  const events = await response.json();
 
   const prs: PullRequest[] = [];
   const seen = new Set<number>();
@@ -183,65 +144,4 @@ export async function getLinkedPRs(
   }
 
   return prs;
-}
-
-/**
- * Helper to map GitHub API issue to our Issue type
- */
-function mapIssue(i: any): Issue {
-  let repository;
-  
-  if (i.repository) {
-    repository = {
-      id: i.repository.full_name,
-      name: i.repository.name,
-      full_name: i.repository.full_name,
-      owner: {
-        login: i.repository.owner.login,
-        avatar_url: i.repository.owner.avatar_url,
-      },
-      private: i.repository.private,
-    };
-  } else {
-    const repoUrl = i.repository_url || '';
-    const match = repoUrl.match(/\/repos\/(.+)$/);
-    const fullName = match ? match[1] : 'unknown/unknown';
-    const [owner, name] = fullName.split('/');
-    
-    repository = {
-      id: fullName,
-      name,
-      full_name: fullName,
-      owner: {
-        login: owner,
-        avatar_url: `https://github.com/${owner}.png`,
-      },
-      private: false,
-    };
-  }
-
-  return {
-    id: String(i.id),
-    number: i.number,
-    title: i.title,
-    body: i.body || '',
-    state: i.state,
-    repository,
-    labels: (i.labels || []).map((l: any) => ({
-      id: String(l.id),
-      name: l.name,
-      color: l.color,
-      description: l.description ?? undefined,
-    })),
-    assignees: (i.assignees || []).map((a: any) => ({
-      id: String(a.id),
-      login: a.login,
-      avatar_url: a.avatar_url,
-      name: a.name ?? undefined,
-    })),
-    created_at: i.created_at,
-    updated_at: i.updated_at,
-    html_url: i.html_url,
-    linked_prs: [],
-  };
 }
