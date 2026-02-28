@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Search, Loader2, Plus, AlertCircle } from 'lucide-react';
-import { getIssues, getLinkedPRs } from '@/app/actions/github';
+import { getIssues, getLinkedPRsForIssues } from '@/app/actions/github';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { UI_CONFIG } from '@/lib/constants';
 import { getErrorMessage, reportClientError } from '@/lib/telemetry';
@@ -63,49 +63,53 @@ export function IssueList({
 
   const fetchLinkedPRsForIssues = useCallback(async (batch: Issue[]) => {
     const batchId = ++prBatchRef.current;
-    const CONCURRENCY = 5;
     setLinkedPrWarning(null);
 
-    let failedCount = 0;
+    let failedRepos = 0;
+    const issuesByRepo = new Map<string, Issue[]>();
+    batch.forEach((issue) => {
+      const existing = issuesByRepo.get(issue.repository.full_name);
+      if (existing) {
+        existing.push(issue);
+      } else {
+        issuesByRepo.set(issue.repository.full_name, [issue]);
+      }
+    });
 
-    for (let i = 0; i < batch.length; i += CONCURRENCY) {
+    for (const [repoFullName, repoIssues] of issuesByRepo) {
       if (prBatchRef.current !== batchId) return;
-      const chunk = batch.slice(i, i + CONCURRENCY);
-      const results = await Promise.allSettled(
-        chunk.map((issue) => getLinkedPRs(issue.repository.full_name, issue.number))
-      );
-      if (prBatchRef.current !== batchId) return;
 
-      results.forEach((result, index) => {
-        const issue = chunk[index];
-        if (!issue) return;
+      try {
+        const prMap = await getLinkedPRsForIssues(
+          repoFullName,
+          repoIssues.map((issue) => issue.number)
+        );
 
-        if (result.status === 'fulfilled') {
-          const prs = result.value;
-          if (prs.length > 0) {
-            setIssues((prev) =>
-              prev.map((item) => (item.id === issue.id ? { ...item, linked_prs: prs } : item))
-            );
-          }
-          return;
-        }
+        if (prBatchRef.current !== batchId) return;
 
-        failedCount += 1;
+        const targetIds = new Set(repoIssues.map((issue) => issue.id));
+        setIssues((prev) =>
+          prev.map((item) => {
+            if (!targetIds.has(item.id)) return item;
+            return { ...item, linked_prs: prMap[item.number] ?? [] };
+          })
+        );
+      } catch (error) {
+        failedRepos += 1;
         reportClientError({
           component: 'IssueList',
-          action: 'load_linked_prs',
-          error: result.reason,
+          action: 'load_linked_prs_batch',
+          error,
           metadata: {
-            repo: issue.repository.full_name,
-            issueNumber: issue.number,
-            issueId: issue.id,
+            repo: repoFullName,
+            issueCount: repoIssues.length,
           },
         });
-      });
+      }
     }
 
-    if (failedCount > 0 && prBatchRef.current === batchId) {
-      setLinkedPrWarning(`Linked pull requests could not be loaded for ${failedCount} issue(s).`);
+    if (failedRepos > 0 && prBatchRef.current === batchId) {
+      setLinkedPrWarning(`Linked pull requests could not be loaded for ${failedRepos} repository group(s).`);
     }
   }, []);
 

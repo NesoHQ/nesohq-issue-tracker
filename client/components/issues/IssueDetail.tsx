@@ -110,8 +110,9 @@ export function IssueDetail({ issue, onClose, onUpdate, onDelete }: IssueDetailP
   }, [repoFullName, issueNumber, currentIssue.id, onUpdate]);
 
   useEffect(() => {
+    if (Array.isArray(currentIssue.linked_prs)) return;
     void loadLinkedPRs();
-  }, [loadLinkedPRs]);
+  }, [currentIssue.linked_prs, loadLinkedPRs]);
 
   const handleUpdateTitle = async () => {
     if (titleValue.trim() === currentIssue.title) { setEditingTitle(false); return; }

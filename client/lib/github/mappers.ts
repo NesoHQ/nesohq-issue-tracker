@@ -138,6 +138,5 @@ export function mapGitHubIssue(
     created_at: issue.created_at,
     updated_at: issue.updated_at,
     html_url: issue.html_url,
-    linked_prs: [],
   };
 }

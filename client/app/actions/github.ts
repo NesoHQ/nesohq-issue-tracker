@@ -18,7 +18,7 @@ import {
   type GitHubRepositoryPayload,
   type GitHubUserPayload,
 } from '@/lib/github/mappers';
-import { githubReadJson } from '@/lib/github/server';
+import { githubJson, githubReadJson } from '@/lib/github/server';
 
 const { DEFAULT_PER_PAGE } = API_CONFIG;
 
@@ -91,57 +91,162 @@ export const getLabels = cache(async (repoFullName: string): Promise<Label[]> =>
 });
 
 /**
- * Get linked pull requests for an issue
+ * Fetch linked pull requests for many issues in one GraphQL request.
+ * This removes N+1 timeline requests in the issue list.
+ */
+export async function getLinkedPRsForIssues(
+  repoFullName: string,
+  issueNumbers: number[]
+): Promise<Record<number, PullRequest[]>> {
+  interface GraphQLLinkedPullRequest {
+    __typename: 'PullRequest';
+    id: string;
+    number: number;
+    title: string;
+    url: string;
+    state: 'OPEN' | 'CLOSED' | 'MERGED';
+    mergedAt?: string | null;
+  }
+
+  interface GraphQLCrossReferencedNode {
+    source?: GraphQLLinkedPullRequest | { __typename: string } | null;
+  }
+
+  interface GraphQLIssueNode {
+    number: number;
+    timelineItems?: {
+      nodes?: Array<GraphQLCrossReferencedNode | null>;
+    };
+  }
+
+  interface GraphQLLinkedPrsResponse {
+    data?: {
+      repository?: Record<string, GraphQLIssueNode | null> | null;
+    };
+    errors?: Array<{ message?: string }>;
+  }
+
+  const isPullRequestSource = (
+    source: GraphQLCrossReferencedNode['source']
+  ): source is GraphQLLinkedPullRequest => {
+    return source?.__typename === 'PullRequest';
+  };
+
+  const uniqueIssueNumbers = [...new Set(issueNumbers)]
+    .filter((n) => Number.isInteger(n) && n > 0);
+  const fallback = Object.fromEntries(
+    uniqueIssueNumbers.map((issueNumber) => [issueNumber, [] as PullRequest[]])
+  );
+  if (uniqueIssueNumbers.length === 0) return fallback;
+
+  const [owner, name] = repoFullName.split('/', 2);
+  if (!owner || !name) return fallback;
+
+  const aliases = uniqueIssueNumbers.map((_, index) => `issue_${index}`);
+  const issueSelections = uniqueIssueNumbers
+    .map((issueNumber, index) => `
+      ${aliases[index]}: issue(number: ${issueNumber}) {
+        number
+        timelineItems(first: 100, itemTypes: [CROSS_REFERENCED_EVENT]) {
+          nodes {
+            ... on CrossReferencedEvent {
+              source {
+                __typename
+                ... on PullRequest {
+                  id
+                  number
+                  title
+                  url
+                  state
+                  mergedAt
+                }
+              }
+            }
+          }
+        }
+      }
+    `)
+    .join('\n');
+
+  const query = `
+    query LinkedPullRequests($owner: String!, $name: String!) {
+      repository(owner: $owner, name: $name) {
+        ${issueSelections}
+      }
+    }
+  `;
+
+  const payload = await githubJson<GraphQLLinkedPrsResponse>('/graphql', {
+    method: 'POST',
+    body: {
+      query,
+      variables: { owner, name },
+    },
+    cacheMode: 'read',
+    revalidate: 60,
+    tags: ['github'],
+  });
+
+  if (payload.errors?.length) {
+    const message = payload.errors
+      .map((err) => err.message)
+      .filter(Boolean)
+      .join('; ') || 'Failed to fetch linked pull requests';
+    throw new Error(message);
+  }
+
+  const repositoryNode = payload.data?.repository;
+  if (!repositoryNode) return fallback;
+
+  const result: Record<number, PullRequest[]> = { ...fallback };
+  aliases.forEach((alias, index) => {
+    const issueNumber = uniqueIssueNumbers[index];
+    if (!issueNumber) return;
+
+    const issueNode = repositoryNode[alias];
+    if (!issueNode) return;
+
+    const prs: PullRequest[] = [];
+    const seen = new Set<number>();
+    const nodes = issueNode.timelineItems?.nodes ?? [];
+
+    nodes.forEach((node) => {
+      const source = node?.source;
+      if (!isPullRequestSource(source)) return;
+
+      const prNumber = source.number;
+      if (seen.has(prNumber)) return;
+      seen.add(prNumber);
+
+      const prState: PullRequest['state'] =
+        source.mergedAt || source.state === 'MERGED'
+          ? 'merged'
+          : source.state === 'OPEN'
+            ? 'open'
+            : 'closed';
+
+      prs.push({
+        id: String(source.id),
+        number: prNumber,
+        title: source.title,
+        state: prState,
+        html_url: source.url,
+      });
+    });
+
+    result[issueNumber] = prs;
+  });
+
+  return result;
+}
+
+/**
+ * Get linked pull requests for a single issue.
  */
 export async function getLinkedPRs(
   repoFullName: string,
   issueNumber: number
 ): Promise<PullRequest[]> {
-  interface GitHubIssueTimelineEvent {
-    event?: string;
-    source?: {
-      type?: string;
-      issue?: {
-        id: number | string;
-        number: number;
-        title: string;
-        state: 'open' | 'closed';
-        html_url: string;
-        pull_request?: {
-          merged_at?: string | null;
-        };
-      };
-    };
-  }
-
-  const events = await githubReadJson<GitHubIssueTimelineEvent[]>(
-    `/repos/${repoFullName}/issues/${issueNumber}/timeline?per_page=100`
-  );
-
-  const prs: PullRequest[] = [];
-  const seen = new Set<number>();
-
-  for (const event of events) {
-    if (event.event !== 'cross-referenced') continue;
-    const source = event.source;
-    if (!source || source.type !== 'issue') continue;
-    const sourceIssue = source.issue;
-    if (!sourceIssue || !sourceIssue.pull_request) continue;
-
-    const prNum = sourceIssue.number;
-    if (seen.has(prNum)) continue;
-    seen.add(prNum);
-
-    const isMerged = !!sourceIssue.pull_request.merged_at;
-
-    prs.push({
-      id: String(sourceIssue.id),
-      number: prNum,
-      title: sourceIssue.title,
-      state: isMerged ? 'merged' : sourceIssue.state,
-      html_url: sourceIssue.html_url,
-    });
-  }
-
-  return prs;
+  const result = await getLinkedPRsForIssues(repoFullName, [issueNumber]);
+  return result[issueNumber] ?? [];
 }
