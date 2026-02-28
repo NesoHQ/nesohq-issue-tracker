@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import type { Issue, Label } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,12 +8,13 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { MarkdownEditor } from './MarkdownEditor';
-import { CircleDot, Circle, GitPullRequest, ExternalLink, Edit2, Check, X as CloseIcon, Loader2 } from 'lucide-react';
+import { CircleDot, Circle, GitPullRequest, ExternalLink, Edit2, Check, X as CloseIcon, Loader2, AlertCircle } from 'lucide-react';
 import { formatRelativeDate, getContrastColor } from '@/lib/utils';
 import { getLabels, getLinkedPRs } from '@/app/actions/github';
 import { updateIssue } from '@/app/actions/issues';
 import { renderMarkdown } from '@/lib/markdown';
 import { toast } from 'sonner';
+import { getErrorMessage, reportClientError } from '@/lib/telemetry';
 
 interface IssueDetailProps {
   issue: Issue;
@@ -31,6 +32,10 @@ export function IssueDetail({ issue, onClose, onUpdate, onDelete }: IssueDetailP
   const [availableLabels, setAvailableLabels] = useState<Label[]>([]);
   const [updating, setUpdating] = useState(false);
   const [loadingPRs, setLoadingPRs] = useState(false);
+  const [labelsError, setLabelsError] = useState<string | null>(null);
+  const [linkedPrsError, setLinkedPrsError] = useState<string | null>(null);
+  const repoFullName = currentIssue.repository.full_name;
+  const issueNumber = currentIssue.number;
 
   const renderedBody = useMemo(
     () => (currentIssue.body ? renderMarkdown(currentIssue.body) : ''),
@@ -43,26 +48,67 @@ export function IssueDetail({ issue, onClose, onUpdate, onDelete }: IssueDetailP
     setBodyValue(issue.body);
     setEditingTitle(false);
     setEditingBody(false);
+    setLabelsError(null);
+    setLinkedPrsError(null);
   }, [issue]);
 
-  useEffect(() => {
-    getLabels(currentIssue.repository.full_name)
-      .then(setAvailableLabels)
-      .catch(() => setAvailableLabels([]));
-  }, [currentIssue.repository.full_name]);
+  const loadLabels = useCallback(async () => {
+    setLabelsError(null);
+    try {
+      const labels = await getLabels(repoFullName);
+      setAvailableLabels(labels);
+    } catch (error) {
+      setAvailableLabels([]);
+      const message = getErrorMessage(error, 'Failed to load labels');
+      setLabelsError(message);
+      reportClientError({
+        component: 'IssueDetail',
+        action: 'load_labels',
+        error,
+        metadata: {
+          repo: repoFullName,
+          issueNumber,
+          issueId: currentIssue.id,
+        },
+      });
+    }
+  }, [repoFullName, issueNumber, currentIssue.id]);
 
   useEffect(() => {
+    void loadLabels();
+  }, [loadLabels]);
+
+  const loadLinkedPRs = useCallback(async () => {
     setLoadingPRs(true);
-    getLinkedPRs(currentIssue.repository.full_name, currentIssue.number)
-      .then((prs) => {
-        const updated = { ...currentIssue, linked_prs: prs };
-        setCurrentIssue(updated);
+    setLinkedPrsError(null);
+    try {
+      const prs = await getLinkedPRs(repoFullName, issueNumber);
+      setCurrentIssue((prev) => {
+        const updated = { ...prev, linked_prs: prs };
         onUpdate(updated);
-      })
-      .catch(() => {})
-      .finally(() => setLoadingPRs(false));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentIssue.repository.full_name, currentIssue.number]);
+        return updated;
+      });
+    } catch (error) {
+      const message = getErrorMessage(error, 'Failed to load linked pull requests');
+      setLinkedPrsError(message);
+      reportClientError({
+        component: 'IssueDetail',
+        action: 'load_linked_prs',
+        error,
+        metadata: {
+          repo: repoFullName,
+          issueNumber,
+          issueId: currentIssue.id,
+        },
+      });
+    } finally {
+      setLoadingPRs(false);
+    }
+  }, [repoFullName, issueNumber, currentIssue.id, onUpdate]);
+
+  useEffect(() => {
+    void loadLinkedPRs();
+  }, [loadLinkedPRs]);
 
   const handleUpdateTitle = async () => {
     if (titleValue.trim() === currentIssue.title) { setEditingTitle(false); return; }
@@ -75,7 +121,18 @@ export function IssueDetail({ issue, onClose, onUpdate, onDelete }: IssueDetailP
       setEditingTitle(false);
       toast.success('Title updated');
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to update title');
+      const message = getErrorMessage(error, 'Failed to update title');
+      toast.error(message);
+      reportClientError({
+        component: 'IssueDetail',
+        action: 'update_title',
+        error,
+        metadata: {
+          repo: currentIssue.repository.full_name,
+          issueNumber: currentIssue.number,
+          issueId: currentIssue.id,
+        },
+      });
     } finally { setUpdating(false); }
   };
 
@@ -90,7 +147,18 @@ export function IssueDetail({ issue, onClose, onUpdate, onDelete }: IssueDetailP
       setEditingBody(false);
       toast.success('Description updated');
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to update description');
+      const message = getErrorMessage(error, 'Failed to update description');
+      toast.error(message);
+      reportClientError({
+        component: 'IssueDetail',
+        action: 'update_description',
+        error,
+        metadata: {
+          repo: currentIssue.repository.full_name,
+          issueNumber: currentIssue.number,
+          issueId: currentIssue.id,
+        },
+      });
     } finally { setUpdating(false); }
   };
 
@@ -105,7 +173,19 @@ export function IssueDetail({ issue, onClose, onUpdate, onDelete }: IssueDetailP
       toast.success(`Issue ${newState === 'open' ? 'reopened' : 'closed'}`);
       if (newState === 'closed') onDelete();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to update state');
+      const message = getErrorMessage(error, 'Failed to update state');
+      toast.error(message);
+      reportClientError({
+        component: 'IssueDetail',
+        action: 'update_state',
+        error,
+        metadata: {
+          repo: currentIssue.repository.full_name,
+          issueNumber: currentIssue.number,
+          issueId: currentIssue.id,
+          targetState: newState,
+        },
+      });
     } finally { setUpdating(false); }
   };
 
@@ -121,7 +201,19 @@ export function IssueDetail({ issue, onClose, onUpdate, onDelete }: IssueDetailP
       setCurrentIssue(result.issue);
       onUpdate(result.issue);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to update labels');
+      const message = getErrorMessage(error, 'Failed to update labels');
+      toast.error(message);
+      reportClientError({
+        component: 'IssueDetail',
+        action: 'update_labels',
+        error,
+        metadata: {
+          repo: currentIssue.repository.full_name,
+          issueNumber: currentIssue.number,
+          issueId: currentIssue.id,
+          labelId: label.id,
+        },
+      });
     } finally { setUpdating(false); }
   };
 
@@ -202,26 +294,36 @@ export function IssueDetail({ issue, onClose, onUpdate, onDelete }: IssueDetailP
           </div>
 
           {/* Labels */}
-          {availableLabels.length > 0 && (
+          {(availableLabels.length > 0 || labelsError) && (
             <div className="space-y-2">
               <h3 className="text-sm font-medium">Labels</h3>
-              <div className="flex flex-wrap gap-2">
-                {availableLabels.map((label) => {
-                  const isSelected = !!currentIssue.labels.find((l) => l.id === label.id);
-                  const textColor = getContrastColor(label.color) === 'dark' ? '#000000' : '#ffffff';
-                  return (
-                    <Badge
-                      key={label.id}
-                      variant={isSelected ? 'default' : 'outline'}
-                      className="cursor-pointer hover:opacity-80 transition-opacity"
-                      style={isSelected ? { backgroundColor: `#${label.color}`, color: textColor, borderColor: `#${label.color}` } : undefined}
-                      onClick={() => handleToggleLabel(label)}
-                    >
-                      {label.name}
-                    </Badge>
-                  );
-                })}
-              </div>
+              {labelsError ? (
+                <div className="border border-destructive/30 rounded-lg bg-destructive/5 p-3 space-y-2 text-sm">
+                  <p className="text-destructive font-medium">Couldn&apos;t load labels</p>
+                  <p className="text-muted-foreground">{labelsError}</p>
+                  <Button size="sm" variant="outline" onClick={loadLabels}>
+                    Retry
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {availableLabels.map((label) => {
+                    const isSelected = !!currentIssue.labels.find((l) => l.id === label.id);
+                    const textColor = getContrastColor(label.color) === 'dark' ? '#000000' : '#ffffff';
+                    return (
+                      <Badge
+                        key={label.id}
+                        variant={isSelected ? 'default' : 'outline'}
+                        className="cursor-pointer hover:opacity-80 transition-opacity"
+                        style={isSelected ? { backgroundColor: `#${label.color}`, color: textColor, borderColor: `#${label.color}` } : undefined}
+                        onClick={() => handleToggleLabel(label)}
+                      >
+                        {label.name}
+                      </Badge>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           )}
 
@@ -249,10 +351,24 @@ export function IssueDetail({ issue, onClose, onUpdate, onDelete }: IssueDetailP
               Linked Pull Requests
               {loadingPRs && <Loader2 className="size-3 animate-spin text-muted-foreground" />}
             </h3>
-            {!loadingPRs && (!currentIssue.linked_prs || currentIssue.linked_prs.length === 0) && (
+            {!loadingPRs && linkedPrsError && (
+              <div className="border border-destructive/30 rounded-lg bg-destructive/5 p-3 space-y-2 text-sm">
+                <div className="flex items-start gap-2">
+                  <AlertCircle className="size-4 text-destructive shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-destructive font-medium">Couldn&apos;t load linked pull requests</p>
+                    <p className="text-muted-foreground">{linkedPrsError}</p>
+                  </div>
+                </div>
+                <Button size="sm" variant="outline" onClick={loadLinkedPRs}>
+                  Retry
+                </Button>
+              </div>
+            )}
+            {!loadingPRs && !linkedPrsError && (!currentIssue.linked_prs || currentIssue.linked_prs.length === 0) && (
               <p className="text-sm text-muted-foreground italic">No linked pull requests</p>
             )}
-            {currentIssue.linked_prs && currentIssue.linked_prs.length > 0 && (
+            {!linkedPrsError && currentIssue.linked_prs && currentIssue.linked_prs.length > 0 && (
               <div className="space-y-2">
                 {currentIssue.linked_prs.map((pr) => (
                   <div key={pr.id} className="flex items-center gap-3 p-3 border rounded-lg hover:bg-accent/50 transition-colors">

@@ -6,9 +6,12 @@ import { IssueRow } from './IssueRow';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, Loader2, Plus } from 'lucide-react';
+import { Search, Loader2, Plus, AlertCircle } from 'lucide-react';
 import { getIssues, getLinkedPRs } from '@/app/actions/github';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { UI_CONFIG } from '@/lib/constants';
+import { getErrorMessage, reportClientError } from '@/lib/telemetry';
+import { toast } from 'sonner';
 
 interface IssueListProps {
   selectedRepo: string | null;
@@ -33,12 +36,15 @@ export function IssueList({
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [stateFilter, setStateFilter] = useState<'all' | 'open' | 'closed'>('open');
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [loadMoreError, setLoadMoreError] = useState<string | null>(null);
+  const [linkedPrWarning, setLinkedPrWarning] = useState<string | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const prBatchRef = useRef(0);
 
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => setDebouncedSearch(search), 500);
+    debounceRef.current = setTimeout(() => setDebouncedSearch(search), UI_CONFIG.DEBOUNCE_DELAY);
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
@@ -58,25 +64,48 @@ export function IssueList({
   const fetchLinkedPRsForIssues = useCallback(async (batch: Issue[]) => {
     const batchId = ++prBatchRef.current;
     const CONCURRENCY = 5;
+    setLinkedPrWarning(null);
+
+    let failedCount = 0;
 
     for (let i = 0; i < batch.length; i += CONCURRENCY) {
       if (prBatchRef.current !== batchId) return;
       const chunk = batch.slice(i, i + CONCURRENCY);
-      await Promise.all(
-        chunk.map(async (issue) => {
-          try {
-            const prs = await getLinkedPRs(issue.repository.full_name, issue.number);
-            if (prBatchRef.current !== batchId) return;
-            if (prs.length > 0) {
-              setIssues((prev) =>
-                prev.map((item) => (item.id === issue.id ? { ...item, linked_prs: prs } : item))
-              );
-            }
-          } catch {
-            // ignore per-issue errors
-          }
-        })
+      const results = await Promise.allSettled(
+        chunk.map((issue) => getLinkedPRs(issue.repository.full_name, issue.number))
       );
+      if (prBatchRef.current !== batchId) return;
+
+      results.forEach((result, index) => {
+        const issue = chunk[index];
+        if (!issue) return;
+
+        if (result.status === 'fulfilled') {
+          const prs = result.value;
+          if (prs.length > 0) {
+            setIssues((prev) =>
+              prev.map((item) => (item.id === issue.id ? { ...item, linked_prs: prs } : item))
+            );
+          }
+          return;
+        }
+
+        failedCount += 1;
+        reportClientError({
+          component: 'IssueList',
+          action: 'load_linked_prs',
+          error: result.reason,
+          metadata: {
+            repo: issue.repository.full_name,
+            issueNumber: issue.number,
+            issueId: issue.id,
+          },
+        });
+      });
+    }
+
+    if (failedCount > 0 && prBatchRef.current === batchId) {
+      setLinkedPrWarning(`Linked pull requests could not be loaded for ${failedCount} issue(s).`);
     }
   }, []);
 
@@ -84,8 +113,12 @@ export function IssueList({
     if (reset) {
       setLoading(true);
       setPage(1);
+      setLoadError(null);
+      setLoadMoreError(null);
+      setLinkedPrWarning(null);
     } else {
       setLoadingMore(true);
+      setLoadMoreError(null);
     }
 
     try {
@@ -95,7 +128,10 @@ export function IssueList({
       if (reset) {
         setIssues(result.issues);
       } else {
-        setIssues((prev) => [...prev, ...result.issues]);
+        setIssues((prev) => {
+          const seen = new Set(prev.map((i) => i.id));
+          return [...prev, ...result.issues.filter((i) => !seen.has(i.id))];
+        });
       }
 
       setHasMore(result.hasMore);
@@ -103,7 +139,26 @@ export function IssueList({
 
       fetchLinkedPRsForIssues(result.issues);
     } catch (error) {
-      console.error('Failed to load issues:', error);
+      const message = getErrorMessage(error, 'Failed to load issues');
+      reportClientError({
+        component: 'IssueList',
+        action: 'load_issues',
+        error,
+        metadata: {
+          repo: selectedRepo ?? 'all',
+          search: debouncedSearch || '(empty)',
+          stateFilter,
+          page: reset ? 1 : page,
+          reset,
+        },
+      });
+
+      if (reset) {
+        setLoadError(message);
+      } else {
+        setLoadMoreError(message);
+        toast.error('Could not load more issues. Please try again.');
+      }
     } finally {
       setLoading(false);
       setLoadingMore(false);
@@ -156,6 +211,21 @@ export function IssueList({
           <div className="flex items-center justify-center py-12">
             <Loader2 className="size-8 animate-spin text-muted-foreground" />
           </div>
+        ) : loadError ? (
+          <div className="px-4 py-8">
+            <div className="max-w-md mx-auto border border-destructive/30 rounded-lg bg-destructive/5 p-4 space-y-3">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="size-5 text-destructive shrink-0 mt-0.5" />
+                <div className="space-y-1">
+                  <h3 className="text-sm font-semibold">Couldn&apos;t load issues</h3>
+                  <p className="text-sm text-muted-foreground">{loadError}</p>
+                </div>
+              </div>
+              <Button onClick={() => loadIssues(true)} size="sm">
+                Retry
+              </Button>
+            </div>
+          </div>
         ) : issues.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 text-center px-4">
             <div className="size-16 rounded-full bg-muted flex items-center justify-center mb-4">
@@ -170,6 +240,13 @@ export function IssueList({
           </div>
         ) : (
           <div>
+            {linkedPrWarning && (
+              <div className="px-4 pt-4">
+                <div className="border rounded-lg p-3 bg-muted/40 text-sm text-muted-foreground">
+                  {linkedPrWarning}
+                </div>
+              </div>
+            )}
             {issues.map((issue) => (
               <IssueRow
                 key={issue.id}
@@ -189,6 +266,14 @@ export function IssueList({
                   {loadingMore && <Loader2 className="size-4 animate-spin" />}
                   Load more
                 </Button>
+              </div>
+            )}
+            {loadMoreError && (
+              <div className="px-4 pb-4">
+                <div className="max-w-md mx-auto border border-destructive/30 rounded-lg bg-destructive/5 p-3 text-sm">
+                  <p className="text-destructive font-medium">Couldn&apos;t load more issues</p>
+                  <p className="text-muted-foreground">{loadMoreError}</p>
+                </div>
               </div>
             )}
           </div>

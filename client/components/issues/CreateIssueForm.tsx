@@ -12,6 +12,7 @@ import { X, Loader2 } from 'lucide-react';
 import { getLabels } from '@/app/actions/github';
 import { createIssue } from '@/app/actions/issues';
 import { toast } from 'sonner';
+import { STORAGE_KEYS, UI_CONFIG } from '@/lib/constants';
 
 interface CreateIssueFormProps {
   repositories: Repository[];
@@ -19,8 +20,6 @@ interface CreateIssueFormProps {
   onClose: () => void;
   onSuccess: (issue: Issue) => void;
 }
-
-const DRAFT_KEY = 'issue_draft';
 
 export function CreateIssueForm({ repositories, defaultRepoFullName, onClose, onSuccess }: CreateIssueFormProps) {
   const [title, setTitle] = useState('');
@@ -35,7 +34,7 @@ export function CreateIssueForm({ repositories, defaultRepoFullName, onClose, on
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
   useEffect(() => {
-    const draft = localStorage.getItem(DRAFT_KEY);
+    const draft = localStorage.getItem(STORAGE_KEYS.ISSUE_DRAFT);
     if (draft) {
       try {
         const parsed = JSON.parse(draft) as { title?: string; body?: string; repoFullName?: string };
@@ -67,7 +66,7 @@ export function CreateIssueForm({ repositories, defaultRepoFullName, onClose, on
     if (title || body) {
       setHasUnsavedChanges(true);
       const timer = setTimeout(() => {
-        localStorage.setItem(DRAFT_KEY, JSON.stringify({ title, body, repoFullName: selectedRepo?.full_name }));
+        localStorage.setItem(STORAGE_KEYS.ISSUE_DRAFT, JSON.stringify({ title, body, repoFullName: selectedRepo?.full_name }));
       }, 1000);
       return () => clearTimeout(timer);
     }
@@ -94,7 +93,7 @@ export function CreateIssueForm({ repositories, defaultRepoFullName, onClose, on
         labels: selectedLabels,
       });
       if (!result.success || !result.issue) throw new Error(result.error ?? 'Failed to create issue');
-      localStorage.removeItem(DRAFT_KEY);
+      localStorage.removeItem(STORAGE_KEYS.ISSUE_DRAFT);
       toast.success('Issue created successfully');
       onSuccess(result.issue);
     } catch (error) {
@@ -106,7 +105,7 @@ export function CreateIssueForm({ repositories, defaultRepoFullName, onClose, on
 
   const handleDiscard = () => {
     if (hasUnsavedChanges && !confirm('Discard unsaved changes?')) return;
-    localStorage.removeItem(DRAFT_KEY);
+    localStorage.removeItem(STORAGE_KEYS.ISSUE_DRAFT);
     onClose();
   };
 
@@ -143,10 +142,10 @@ export function CreateIssueForm({ repositories, defaultRepoFullName, onClose, on
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Brief description of the issue"
-              maxLength={256}
+              maxLength={UI_CONFIG.MAX_TITLE_LENGTH}
               autoFocus
             />
-            <div className="text-xs text-muted-foreground text-right">{title.length}/256</div>
+            <div className="text-xs text-muted-foreground text-right">{title.length}/{UI_CONFIG.MAX_TITLE_LENGTH}</div>
           </div>
 
           <div className="space-y-2">

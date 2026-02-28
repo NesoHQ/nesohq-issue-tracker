@@ -1,15 +1,12 @@
 'use client';
 
 import { apiUrl, fetchJson } from '../http';
+import { OAUTH_CONFIG, STORAGE_KEYS } from '../constants';
 
 interface AuthConfigResponse {
   client_id: string;
   redirect_uri?: string | null;
 }
-
-const OAUTH_STATE_KEY = 'github_oauth_state';
-const OAUTH_VERIFIER_KEY = 'github_oauth_code_verifier';
-const OAUTH_REDIRECT_URI_KEY = 'github_oauth_redirect_uri';
 
 function resolveRedirectUri(config: AuthConfigResponse): string | null {
   return (config.redirect_uri || '').trim() || null;
@@ -45,25 +42,25 @@ export const authService = {
       throw new Error('OAuth configuration is missing client_id');
     }
 
-    const state = createRandomString(32);
-    const codeVerifier = createRandomString(96);
+    const state = createRandomString(OAUTH_CONFIG.STATE_LENGTH);
+    const codeVerifier = createRandomString(OAUTH_CONFIG.VERIFIER_LENGTH);
     const codeChallenge = await sha256Base64Url(codeVerifier);
     const redirectUri = resolveRedirectUri(config);
 
-    sessionStorage.setItem(OAUTH_STATE_KEY, state);
-    sessionStorage.setItem(OAUTH_VERIFIER_KEY, codeVerifier);
+    sessionStorage.setItem(STORAGE_KEYS.OAUTH_STATE, state);
+    sessionStorage.setItem(STORAGE_KEYS.OAUTH_VERIFIER, codeVerifier);
     if (redirectUri) {
-      sessionStorage.setItem(OAUTH_REDIRECT_URI_KEY, redirectUri);
+      sessionStorage.setItem(STORAGE_KEYS.OAUTH_REDIRECT_URI, redirectUri);
     } else {
-      sessionStorage.removeItem(OAUTH_REDIRECT_URI_KEY);
+      sessionStorage.removeItem(STORAGE_KEYS.OAUTH_REDIRECT_URI);
     }
 
     const params = new URLSearchParams({
       client_id: config.client_id,
-      scope: 'read:user repo',
+      scope: OAUTH_CONFIG.SCOPE,
       state,
       code_challenge: codeChallenge,
-      code_challenge_method: 'S256',
+      code_challenge_method: OAUTH_CONFIG.CHALLENGE_METHOD,
       allow_signup: 'true',
     });
     if (redirectUri) {
@@ -83,8 +80,8 @@ export const authService = {
     _code: string,
     stateFromUrl: string | null
   ): { codeVerifier: string; redirectUri: string | null } {
-    const expectedState = sessionStorage.getItem(OAUTH_STATE_KEY);
-    const codeVerifier = sessionStorage.getItem(OAUTH_VERIFIER_KEY);
+    const expectedState = sessionStorage.getItem(STORAGE_KEYS.OAUTH_STATE);
+    const codeVerifier = sessionStorage.getItem(STORAGE_KEYS.OAUTH_VERIFIER);
 
     if (!expectedState || !stateFromUrl || expectedState !== stateFromUrl) {
       throw new Error('Invalid OAuth state. Please try again.');
@@ -93,11 +90,11 @@ export const authService = {
       throw new Error('Missing OAuth verifier. Please try again.');
     }
 
-    const redirectUri = sessionStorage.getItem(OAUTH_REDIRECT_URI_KEY);
+    const redirectUri = sessionStorage.getItem(STORAGE_KEYS.OAUTH_REDIRECT_URI);
 
-    sessionStorage.removeItem(OAUTH_STATE_KEY);
-    sessionStorage.removeItem(OAUTH_VERIFIER_KEY);
-    sessionStorage.removeItem(OAUTH_REDIRECT_URI_KEY);
+    sessionStorage.removeItem(STORAGE_KEYS.OAUTH_STATE);
+    sessionStorage.removeItem(STORAGE_KEYS.OAUTH_VERIFIER);
+    sessionStorage.removeItem(STORAGE_KEYS.OAUTH_REDIRECT_URI);
 
     return { codeVerifier, redirectUri };
   },
