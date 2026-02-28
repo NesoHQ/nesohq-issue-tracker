@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import type { Issue, Label } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -25,6 +25,7 @@ interface IssueDetailProps {
 
 export function IssueDetail({ issue, onClose, onUpdate, onDelete }: IssueDetailProps) {
   const [currentIssue, setCurrentIssue] = useState(issue);
+  const currentIssueRef = useRef(issue);
   const [editingTitle, setEditingTitle] = useState(false);
   const [editingBody, setEditingBody] = useState(false);
   const [titleValue, setTitleValue] = useState(issue.title);
@@ -41,6 +42,10 @@ export function IssueDetail({ issue, onClose, onUpdate, onDelete }: IssueDetailP
     () => (currentIssue.body ? renderMarkdown(currentIssue.body) : ''),
     [currentIssue.body]
   );
+
+  useEffect(() => {
+    currentIssueRef.current = currentIssue;
+  }, [currentIssue]);
 
   useEffect(() => {
     setCurrentIssue(issue);
@@ -83,11 +88,9 @@ export function IssueDetail({ issue, onClose, onUpdate, onDelete }: IssueDetailP
     setLinkedPrsError(null);
     try {
       const prs = await getLinkedPRs(repoFullName, issueNumber);
-      setCurrentIssue((prev) => {
-        const updated = { ...prev, linked_prs: prs };
-        onUpdate(updated);
-        return updated;
-      });
+      const updated = { ...currentIssueRef.current, linked_prs: prs };
+      setCurrentIssue(updated);
+      onUpdate(updated);
     } catch (error) {
       const message = getErrorMessage(error, 'Failed to load linked pull requests');
       setLinkedPrsError(message);

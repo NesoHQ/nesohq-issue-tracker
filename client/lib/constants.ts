@@ -42,6 +42,7 @@ export const ROUTES = {
   HOME: '/',
   WORKSPACE: '/workspace',
   AUTH_CALLBACK: '/auth/callback',
+  AUTH_SESSION_RESET: '/auth/session-reset',
 } as const;
 
 // Feature flags (for gradual rollout)

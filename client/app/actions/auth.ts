@@ -6,7 +6,7 @@
  */
 
 import { redirect } from 'next/navigation';
-import { setAuthToken, setUserCookie, removeAuthToken, removeUserCookie } from '@/lib/auth/cookies';
+import { setAuthToken, removeAuthToken, removeUserCookie } from '@/lib/auth/cookies';
 import { ROUTES } from '@/lib/constants';
 import type { AuthExchangeResponse } from '@/lib/types';
 
@@ -43,14 +43,9 @@ export async function completeOAuthExchange(
 
     const data: AuthExchangeResponse = await response.json();
 
-    // Set server-side cookies
+    // Set server-side auth token cookie
     await setAuthToken(data.access_token);
-    await setUserCookie({
-      id: data.user.login,
-      login: data.user.login,
-      name: data.user.name,
-      avatar_url: data.user.avatar_url,
-    });
+    await removeUserCookie();
 
     return { success: true };
   } catch (error) {

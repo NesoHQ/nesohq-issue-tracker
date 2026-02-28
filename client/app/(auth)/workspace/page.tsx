@@ -1,9 +1,8 @@
-import { getRepositories } from '@/app/actions/github';
-import { getUserFromCookie } from '@/lib/auth/cookies';
+import { getAuthenticatedUser, getRepositories } from '@/app/actions/github';
 import { WorkspaceShell } from '@/components/workspace/WorkspaceShell';
 import { redirect } from 'next/navigation';
 import { ROUTES } from '@/lib/constants';
-import type { Repository } from '@/lib/types';
+import type { Repository, User } from '@/lib/types';
 
 /**
  * Workspace page - Server Component
@@ -11,24 +10,28 @@ import type { Repository } from '@/lib/types';
  */
 
 export default async function WorkspacePage() {
-  // Get user from cookie (set by middleware)
-  const user = await getUserFromCookie();
-  
-  if (!user) {
-    redirect(ROUTES.HOME);
-  }
+  // Validate the session by fetching user identity from GitHub using the access token.
+  // We intentionally avoid trusting user profile cookies for identity display.
+  const isAuthFailure = (error: unknown) => {
+    if (!(error instanceof Error)) return false;
+    const message = error.message.toLowerCase();
+    return (
+      message.includes('session expired') ||
+      message.includes('not authenticated') ||
+      message.includes('bad credentials')
+    );
+  };
 
-  // Fetch repositories on the server
-  // This is cached and deduplicated automatically
+  let user: User;
   let repositories: Repository[] = [];
   try {
+    user = await getAuthenticatedUser();
     repositories = await getRepositories();
   } catch (error) {
-    // Session expired — clear cookies and send back to sign-in
-    if (error instanceof Error && error.message.includes('Session expired')) {
-      redirect(ROUTES.HOME);
+    if (isAuthFailure(error)) {
+      redirect(`${ROUTES.AUTH_SESSION_RESET}?next=${encodeURIComponent(ROUTES.HOME)}`);
     }
-    console.error('Failed to load repositories:', error);
+    throw error;
   }
 
   return (

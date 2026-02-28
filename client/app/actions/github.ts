@@ -8,7 +8,7 @@
 import { cache } from 'react';
 import { getAuthToken } from '@/lib/auth/cookies';
 import { API_CONFIG } from '@/lib/constants';
-import type { Repository, Issue, Label, PullRequest } from '@/lib/types';
+import type { Repository, Issue, Label, PullRequest, User } from '@/lib/types';
 
 const { GITHUB_API, GITHUB_VERSION, DEFAULT_PER_PAGE } = API_CONFIG;
 
@@ -77,6 +77,23 @@ export const getRepositories = cache(async (): Promise<Repository[]> => {
     description: r.description ?? undefined,
   }));
 });
+
+/**
+ * Get authenticated GitHub user from access token
+ * This is the source of truth for identity in the workspace.
+ */
+export async function getAuthenticatedUser(): Promise<User> {
+  const response = await githubFetch('/user');
+  const user = await response.json();
+
+  return {
+    id: String(user.id ?? user.login),
+    login: user.login,
+    name: user.name ?? user.login,
+    avatar_url: user.avatar_url,
+    email: user.email ?? undefined,
+  };
+}
 
 /**
  * Get issues for a repository or user
