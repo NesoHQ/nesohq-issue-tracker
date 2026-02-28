@@ -39,7 +39,7 @@ jobs:
       fail-fast: false
       matrix:
         service: [client, server]
-    uses: ./.github/workflows/docker-build.yml
+    uses: ./.github/workflows/docker-build.yaml
     with:
       service: ${{ matrix.service }}
       should-build: ${{ needs.detect-changes.outputs[matrix.service] == 'true' || github.ref_type == 'tag' }}

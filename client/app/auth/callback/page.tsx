@@ -1,6 +1,4 @@
-'use client';
-
-import { OAuthCallback } from '../../../src/app/components/OAuthCallback';
+import { OAuthCallback } from '@/components/auth/OAuthCallback';
 
 export default function CallbackPage() {
   return <OAuthCallback />;

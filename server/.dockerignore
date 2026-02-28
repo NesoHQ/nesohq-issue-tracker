@@ -1,0 +1,20 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# Environment files (pass secrets at runtime, never bake them into the image)
+.env
+.env.local
+*.local
+
+# Development & editor files
+.git/
+.gitignore
+.vscode/
+README.md
+
+# Logs
+*.log
+npm-debug.log*
