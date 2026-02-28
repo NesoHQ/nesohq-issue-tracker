@@ -57,18 +57,26 @@ export function IssueList({
 
   const fetchLinkedPRsForIssues = useCallback(async (batch: Issue[]) => {
     const batchId = ++prBatchRef.current;
-    for (const issue of batch) {
+    const CONCURRENCY = 5;
+
+    for (let i = 0; i < batch.length; i += CONCURRENCY) {
       if (prBatchRef.current !== batchId) return;
-      try {
-        const prs = await getLinkedPRs(issue.repository.full_name, issue.number);
-        if (prBatchRef.current !== batchId) return;
-        if (prs.length > 0) {
-          setIssues((prev) => prev.map((i) => (i.id === issue.id ? { ...i, linked_prs: prs } : i)));
-        }
-      } catch {
-        // ignore per-issue errors
-      }
-      await new Promise((r) => setTimeout(r, 80));
+      const chunk = batch.slice(i, i + CONCURRENCY);
+      await Promise.all(
+        chunk.map(async (issue) => {
+          try {
+            const prs = await getLinkedPRs(issue.repository.full_name, issue.number);
+            if (prBatchRef.current !== batchId) return;
+            if (prs.length > 0) {
+              setIssues((prev) =>
+                prev.map((item) => (item.id === issue.id ? { ...item, linked_prs: prs } : item))
+              );
+            }
+          } catch {
+            // ignore per-issue errors
+          }
+        })
+      );
     }
   }, []);
 
@@ -167,7 +175,7 @@ export function IssueList({
                 key={issue.id}
                 issue={issue}
                 selected={issue.id === selectedIssueId}
-                onClick={() => onIssueSelect(issue)}
+                onSelect={onIssueSelect}
               />
             ))}
             {hasMore && (

@@ -24,7 +24,7 @@ interface WorkspaceHeaderProps {
 }
 
 export function WorkspaceHeader({ user }: WorkspaceHeaderProps) {
-  const { theme, setTheme } = useTheme();
+  const { resolvedTheme, setTheme } = useTheme();
 
   const handleSignOut = async () => {
     await signOut();
@@ -42,10 +42,14 @@ export function WorkspaceHeader({ user }: WorkspaceHeaderProps) {
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+          onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
           className="size-9 p-0"
+          aria-label="Toggle theme"
         >
-          {theme === 'dark' ? <Sun className="size-4" /> : <Moon className="size-4" />}
+          {/* Both icons rendered; CSS shows/hides based on the `dark` class next-themes
+              sets on <html> before React hydrates — no hydration mismatch. */}
+          <Sun  className="size-4 hidden dark:block" />
+          <Moon className="size-4 block  dark:hidden" />
         </Button>
 
         {/* User menu */}

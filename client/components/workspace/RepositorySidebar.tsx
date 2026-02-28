@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo, useCallback, memo } from 'react';
 import type { Repository } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -39,7 +39,7 @@ export function RepositorySidebar({
   const [search, setSearch] = useState('');
   const [pinnedIds, setPinnedIds] = useState<Set<string>>(loadPins);
 
-  const togglePin = (e: React.MouseEvent, repoId: string) => {
+  const togglePin = useCallback((e: React.MouseEvent, repoId: string) => {
     e.stopPropagation();
     setPinnedIds((prev) => {
       const next = new Set(prev);
@@ -51,20 +51,24 @@ export function RepositorySidebar({
       savePins(next);
       return next;
     });
-  };
+  }, []);
 
-  const handleRepoClick = (repoId: string) => {
+  const handleRepoClick = useCallback((repoId: string) => {
     onSelectionChange(selectedRepo === repoId ? null : repoId);
-  };
+  }, [onSelectionChange, selectedRepo]);
 
-  const filtered = repositories.filter(
-    (r) =>
-      r.name.toLowerCase().includes(search.toLowerCase()) ||
-      r.full_name.toLowerCase().includes(search.toLowerCase())
+  const filtered = useMemo(
+    () =>
+      repositories.filter(
+        (r) =>
+          r.name.toLowerCase().includes(search.toLowerCase()) ||
+          r.full_name.toLowerCase().includes(search.toLowerCase())
+      ),
+    [repositories, search]
   );
 
-  const pinned = filtered.filter((r) => pinnedIds.has(r.id));
-  const others = filtered.filter((r) => !pinnedIds.has(r.id));
+  const pinned = useMemo(() => filtered.filter((r) => pinnedIds.has(r.id)), [filtered, pinnedIds]);
+  const others = useMemo(() => filtered.filter((r) => !pinnedIds.has(r.id)), [filtered, pinnedIds]);
 
   return (
     <div className={cn('flex flex-col h-full border-r bg-sidebar', className)}>
@@ -109,7 +113,7 @@ export function RepositorySidebar({
                 <>
                   <p className="px-2 pt-1 pb-0.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Pinned</p>
                   {pinned.map((repo) => (
-                    <RepoRow key={repo.id} repo={repo} selected={selectedRepo === repo.id} pinned onClick={() => handleRepoClick(repo.id)} onTogglePin={(e) => togglePin(e, repo.id)} />
+                    <RepoRow key={repo.id} repo={repo} selected={selectedRepo === repo.id} pinned onClick={handleRepoClick} onTogglePin={togglePin} />
                   ))}
                   {others.length > 0 && (
                     <p className="px-2 pt-3 pb-0.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">All</p>
@@ -117,7 +121,7 @@ export function RepositorySidebar({
                 </>
               )}
               {others.map((repo) => (
-                <RepoRow key={repo.id} repo={repo} selected={selectedRepo === repo.id} pinned={false} onClick={() => handleRepoClick(repo.id)} onTogglePin={(e) => togglePin(e, repo.id)} />
+                <RepoRow key={repo.id} repo={repo} selected={selectedRepo === repo.id} pinned={false} onClick={handleRepoClick} onTogglePin={togglePin} />
               ))}
             </>
           )}
@@ -131,18 +135,18 @@ interface RepoRowProps {
   repo: Repository;
   selected: boolean;
   pinned: boolean;
-  onClick: () => void;
-  onTogglePin: (e: React.MouseEvent) => void;
+  onClick: (id: string) => void;
+  onTogglePin: (e: React.MouseEvent, id: string) => void;
 }
 
-function RepoRow({ repo, selected, pinned, onClick, onTogglePin }: RepoRowProps) {
+const RepoRow = memo(function RepoRow({ repo, selected, pinned, onClick, onTogglePin }: RepoRowProps) {
   return (
     <div
       className={cn(
         'group flex items-start gap-2 p-3 rounded-lg cursor-pointer hover:bg-sidebar-accent transition-colors',
         selected && 'bg-sidebar-accent ring-2 ring-sidebar-ring'
       )}
-      onClick={onClick}
+      onClick={() => onClick(repo.id)}
     >
       <div className="flex-1 w-5 space-y-1">
         <div className="flex items-center gap-2">
@@ -158,7 +162,7 @@ function RepoRow({ repo, selected, pinned, onClick, onTogglePin }: RepoRowProps)
         )}
       </div>
       <button
-        onClick={onTogglePin}
+        onClick={(e) => onTogglePin(e, repo.id)}
         title={pinned ? 'Unpin repository' : 'Pin repository'}
         className={cn(
           'flex-shrink-0 mt-0.5 p-1 rounded transition-all',
@@ -171,4 +175,4 @@ function RepoRow({ repo, selected, pinned, onClick, onTogglePin }: RepoRowProps)
       </button>
     </div>
   );
-}
+});

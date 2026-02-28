@@ -1,5 +1,6 @@
 'use client';
 
+import { memo } from 'react';
 import type { Issue, Label, PullRequest } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -10,7 +11,7 @@ import { Circle, CircleDot, GitPullRequest, GitMerge, GitPullRequestClosed } fro
 interface IssueRowProps {
   issue: Issue;
   selected?: boolean | undefined;
-  onClick: () => void;
+  onSelect: (issue: Issue) => void;
 }
 
 function prBadgeProps(prs: PullRequest[]) {
@@ -33,14 +34,14 @@ function prBadgeProps(prs: PullRequest[]) {
   return { icon: GitPullRequestClosed, color: 'text-muted-foreground', borderColor: 'border-border', tooltip };
 }
 
-export function IssueRow({ issue, selected, onClick }: IssueRowProps) {
+export const IssueRow = memo(function IssueRow({ issue, selected, onSelect }: IssueRowProps) {
   const prs = issue.linked_prs ?? [];
   const badge = prs.length > 0 ? prBadgeProps(prs) : null;
 
   return (
     <div
       className={`border-b cursor-pointer hover:bg-accent/50 transition-colors ${selected ? 'bg-accent' : ''}`}
-      onClick={onClick}
+      onClick={() => onSelect(issue)}
     >
       <div className="px-6 py-4">
         <div className="flex items-start gap-4">
@@ -115,9 +116,9 @@ export function IssueRow({ issue, selected, onClick }: IssueRowProps) {
       </div>
     </div>
   );
-}
+});
 
-function LabelBadge({ label }: { label: Label }) {
+const LabelBadge = memo(function LabelBadge({ label }: { label: Label }) {
   const textColor = getContrastColor(label.color) === 'dark' ? '#000000' : '#ffffff';
   return (
     <Badge
@@ -128,4 +129,4 @@ function LabelBadge({ label }: { label: Label }) {
       {label.name}
     </Badge>
   );
-}
+});

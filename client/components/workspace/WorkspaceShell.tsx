@@ -5,7 +5,7 @@
  * Client component that manages workspace state and layout
  */
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { WorkspaceHeader } from './WorkspaceHeader';
 import { RepositorySidebar } from './RepositorySidebar';
 import { IssueList } from '@/components/issues/IssueList';
@@ -23,7 +23,6 @@ interface WorkspaceShellProps {
 }
 
 export function WorkspaceShell({ user, initialRepositories }: WorkspaceShellProps) {
-  const [repositories] = useState<Repository[]>(initialRepositories);
   const [selectedRepo, setSelectedRepo] = useState<string | null>(
     initialRepositories[0]?.id ?? null
   );
@@ -31,33 +30,33 @@ export function WorkspaceShell({ user, initialRepositories }: WorkspaceShellProp
   const [view, setView] = useState<View>('issues');
   const [detailPanelSize, setDetailPanelSize] = useState(40);
 
-  const handleIssueSelect = (issue: Issue) => {
+  const handleIssueSelect = useCallback((issue: Issue) => {
     setSelectedIssue(issue);
     setView('detail');
-  };
+  }, []);
 
-  const handleCreateClick = () => {
+  const handleCreateClick = useCallback(() => {
     setView('create');
-  };
+  }, []);
 
-  const handleCloseDetail = () => {
+  const handleCloseDetail = useCallback(() => {
     setSelectedIssue(null);
     setView('issues');
-  };
+  }, []);
 
-  const handleIssueCreated = (issue: Issue) => {
+  const handleIssueCreated = useCallback((issue: Issue) => {
     setSelectedIssue(issue);
     setView('detail');
-  };
+  }, []);
 
-  const handleIssueUpdated = (issue: Issue) => {
+  const handleIssueUpdated = useCallback((issue: Issue) => {
     setSelectedIssue(issue);
-  };
+  }, []);
 
-  const handleIssueDeleted = () => {
+  const handleIssueDeleted = useCallback(() => {
     setSelectedIssue(null);
     setView('issues');
-  };
+  }, []);
 
   return (
     <div className="h-screen flex flex-col bg-background">
@@ -77,7 +76,7 @@ export function WorkspaceShell({ user, initialRepositories }: WorkspaceShellProp
             collapsible
           >
             <RepositorySidebar
-              repositories={repositories}
+              repositories={initialRepositories}
               selectedRepo={selectedRepo}
               onSelectionChange={setSelectedRepo}
             />
@@ -85,12 +84,10 @@ export function WorkspaceShell({ user, initialRepositories }: WorkspaceShellProp
 
           <ResizableHandle />
 
-          {/* Issue list */}
-          <ResizablePanel 
-            defaultSize={view === 'detail' ? 60 - detailPanelSize : 80} 
-            minSize={30}
-          >
-            {view === 'issues' && (
+          {/* Issue list — always mounted so state/data is never lost on view changes */}
+          <ResizablePanel defaultSize={80} minSize={30}>
+            {/* Hidden (not unmounted) when the create form is open */}
+            <div className={view === 'create' ? 'hidden' : 'h-full'}>
               <IssueList
                 selectedRepo={selectedRepo}
                 selectedIssueId={selectedIssue?.id}
@@ -98,22 +95,13 @@ export function WorkspaceShell({ user, initialRepositories }: WorkspaceShellProp
                 onCreateClick={handleCreateClick}
                 patchIssue={selectedIssue ?? undefined}
               />
-            )}
+            </div>
             {view === 'create' && (
               <CreateIssueForm
-                repositories={repositories}
+                repositories={initialRepositories}
                 defaultRepoFullName={selectedRepo}
                 onClose={handleCloseDetail}
                 onSuccess={handleIssueCreated}
-              />
-            )}
-            {view === 'detail' && selectedIssue && (
-              <IssueList
-                selectedRepo={selectedRepo}
-                selectedIssueId={selectedIssue.id}
-                onIssueSelect={handleIssueSelect}
-                onCreateClick={handleCreateClick}
-                patchIssue={selectedIssue}
               />
             )}
           </ResizablePanel>

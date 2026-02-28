@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import type { Issue, Label } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -31,6 +31,11 @@ export function IssueDetail({ issue, onClose, onUpdate, onDelete }: IssueDetailP
   const [availableLabels, setAvailableLabels] = useState<Label[]>([]);
   const [updating, setUpdating] = useState(false);
   const [loadingPRs, setLoadingPRs] = useState(false);
+
+  const renderedBody = useMemo(
+    () => (currentIssue.body ? renderMarkdown(currentIssue.body) : ''),
+    [currentIssue.body]
+  );
 
   useEffect(() => {
     setCurrentIssue(issue);
@@ -293,8 +298,8 @@ export function IssueDetail({ issue, onClose, onUpdate, onDelete }: IssueDetailP
               </div>
             ) : (
               <div className="border rounded-lg p-4 bg-muted/30 min-h-[80px]">
-                {currentIssue.body ? (
-                  <div className="prose prose-sm dark:prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: renderMarkdown(currentIssue.body) }} />
+                {renderedBody ? (
+                  <div className="prose prose-sm dark:prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: renderedBody }} />
                 ) : (
                   <p className="text-muted-foreground italic text-sm">No description provided</p>
                 )}
