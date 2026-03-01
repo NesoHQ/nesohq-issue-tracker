@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import type { Issue, Label } from '@/lib/types';
+import type { Issue, Label, PullRequest } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -22,6 +22,31 @@ interface IssueDetailProps {
   onUpdate: (issue: Issue) => void;
   onDelete: () => void;
 }
+
+const PR_STATE_STYLES: Record<
+  PullRequest['state'],
+  {
+    iconClassName: string;
+    badgeVariant: 'outline' | 'secondary';
+    badgeClassName: string;
+  }
+> = {
+  open: {
+    iconClassName: 'text-green-600',
+    badgeVariant: 'outline',
+    badgeClassName: 'border-green-500/50 bg-green-500/10 text-green-700 dark:text-green-400',
+  },
+  closed: {
+    iconClassName: 'text-red-600',
+    badgeVariant: 'outline',
+    badgeClassName: 'border-red-500/50 bg-red-500/10 text-red-700 dark:text-red-400',
+  },
+  merged: {
+    iconClassName: 'text-purple-500',
+    badgeVariant: 'secondary',
+    badgeClassName: 'bg-purple-600 text-white',
+  },
+};
 
 export function IssueDetail({ issue, onClose, onUpdate, onDelete }: IssueDetailProps) {
   const [currentIssue, setCurrentIssue] = useState(issue);
@@ -387,22 +412,22 @@ export function IssueDetail({ issue, onClose, onUpdate, onDelete }: IssueDetailP
             )}
             {!linkedPrsError && currentIssue.linked_prs && currentIssue.linked_prs.length > 0 && (
               <div className="space-y-2">
-                {currentIssue.linked_prs.map((pr) => (
-                  <div key={pr.id} className="flex items-center gap-3 p-3 border rounded-lg hover:bg-accent/50 transition-colors">
-                    <GitPullRequest className="size-4 flex-shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <a href={pr.html_url} target="_blank" rel="noopener noreferrer" className="text-sm hover:underline">
-                        #{pr.number} {pr.title}
-                      </a>
+                {currentIssue.linked_prs.map((pr) => {
+                  const prStateStyle = PR_STATE_STYLES[pr.state];
+                  return (
+                    <div key={pr.id} className="flex items-center gap-3 p-3 border rounded-lg hover:bg-accent/50 transition-colors">
+                      <GitPullRequest className={`size-4 flex-shrink-0 ${prStateStyle.iconClassName}`} />
+                      <div className="flex-1 min-w-0">
+                        <a href={pr.html_url} target="_blank" rel="noopener noreferrer" className="text-sm hover:underline">
+                          #{pr.number} {pr.title}
+                        </a>
+                      </div>
+                      <Badge variant={prStateStyle.badgeVariant} className={prStateStyle.badgeClassName}>
+                        {pr.state === 'closed' ? 'failed' : pr.state}
+                      </Badge>
                     </div>
-                    <Badge
-                      variant={pr.state === 'open' ? 'default' : pr.state === 'merged' ? 'secondary' : 'outline'}
-                      className={pr.state === 'merged' ? 'bg-purple-600 text-white' : ''}
-                    >
-                      {pr.state}
-                    </Badge>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>

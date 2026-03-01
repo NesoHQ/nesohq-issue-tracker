@@ -144,7 +144,11 @@ export function IssueList({
       }
 
       setHasMore(result.hasMore);
-      if (!reset) setPage((prev) => prev + 1);
+      if (reset) {
+        setPage(2);
+      } else {
+        setPage((prev) => prev + 1);
+      }
 
       fetchLinkedPRsForIssues(result.issues);
     } catch (error) {

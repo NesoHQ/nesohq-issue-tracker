@@ -22,7 +22,7 @@ function prBadgeProps(prs: PullRequest[]) {
   const parts: string[] = [];
   if (open) parts.push(`${open} open`);
   if (merged) parts.push(`${merged} merged`);
-  if (closed) parts.push(`${closed} closed`);
+  if (closed) parts.push(`${closed} failed`);
   const tooltip = parts.join(' · ');
 
   if (open > 0) {
@@ -31,7 +31,7 @@ function prBadgeProps(prs: PullRequest[]) {
   if (merged > 0) {
     return { icon: GitMerge, color: 'text-purple-500', borderColor: 'border-purple-500/50', tooltip };
   }
-  return { icon: GitPullRequestClosed, color: 'text-muted-foreground', borderColor: 'border-border', tooltip };
+  return { icon: GitPullRequestClosed, color: 'text-red-600', borderColor: 'border-red-500/50', tooltip };
 }
 
 export const IssueRow = memo(function IssueRow({ issue, selected, onSelect }: IssueRowProps) {
