@@ -74,7 +74,17 @@ export function reportClientError({
     timestamp: new Date().toISOString(),
   };
 
-  console.error('[telemetry]', payload);
+  if (process.env.NODE_ENV !== 'production') {
+    console.warn('[telemetry]', {
+      component: payload.component,
+      action: payload.action,
+      message: payload.message,
+      errorName: payload.errorName,
+      metadata: payload.metadata,
+      path: payload.path,
+      timestamp: payload.timestamp,
+    });
+  }
 
   if (typeof window === 'undefined') return;
 
