@@ -46,6 +46,10 @@ export interface GitHubIssuePayload {
   title: string;
   body?: string | null;
   state: 'open' | 'closed';
+  pull_request?: {
+    url?: string;
+    html_url?: string;
+  };
   repository?: GitHubRepositoryPayload;
   repository_url?: string;
   labels?: GitHubLabelPayload[];

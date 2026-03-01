@@ -74,9 +74,10 @@ export async function getIssues(
   const data = await githubReadJson<GitHubIssuePayload[] | GitHubSearchIssuesPayload>(path);
 
   const items = Array.isArray(data) ? data : data.items ?? [];
+  const issueItems = items.filter((item) => !item.pull_request);
   
   return {
-    issues: items.map((item) => mapGitHubIssue(item)),
+    issues: issueItems.map((item) => mapGitHubIssue(item)),
     hasMore: items.length === perPage,
   };
 }
@@ -113,15 +114,20 @@ export async function getLinkedPRsForIssues(
   }
 
   interface GraphQLIssueNode {
+    __typename: 'Issue';
     number: number;
     timelineItems?: {
       nodes?: Array<GraphQLCrossReferencedNode | null>;
     };
   }
 
+  interface GraphQLIssueLookupPullRequestNode {
+    __typename: 'PullRequest';
+  }
+
   interface GraphQLLinkedPrsResponse {
     data?: {
-      repository?: Record<string, GraphQLIssueNode | null> | null;
+      repository?: Record<string, GraphQLIssueNode | GraphQLIssueLookupPullRequestNode | null> | null;
     };
     errors?: Array<{ message?: string }>;
   }
@@ -145,20 +151,23 @@ export async function getLinkedPRsForIssues(
   const aliases = uniqueIssueNumbers.map((_, index) => `issue_${index}`);
   const issueSelections = uniqueIssueNumbers
     .map((issueNumber, index) => `
-      ${aliases[index]}: issue(number: ${issueNumber}) {
-        number
-        timelineItems(first: 100, itemTypes: [CROSS_REFERENCED_EVENT]) {
-          nodes {
-            ... on CrossReferencedEvent {
-              source {
-                __typename
-                ... on PullRequest {
-                  id
-                  number
-                  title
-                  url
-                  state
-                  mergedAt
+      ${aliases[index]}: issueOrPullRequest(number: ${issueNumber}) {
+        __typename
+        ... on Issue {
+          number
+          timelineItems(first: 100, itemTypes: [CROSS_REFERENCED_EVENT]) {
+            nodes {
+              ... on CrossReferencedEvent {
+                source {
+                  __typename
+                  ... on PullRequest {
+                    id
+                    number
+                    title
+                    url
+                    state
+                    mergedAt
+                  }
                 }
               }
             }
@@ -204,7 +213,7 @@ export async function getLinkedPRsForIssues(
     if (!issueNumber) return;
 
     const issueNode = repositoryNode[alias];
-    if (!issueNode) return;
+    if (!issueNode || issueNode.__typename !== 'Issue') return;
 
     const prs: PullRequest[] = [];
     const seen = new Set<number>();
