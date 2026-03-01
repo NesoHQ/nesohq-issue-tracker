@@ -79,10 +79,19 @@ Open: `http://localhost:3000`
 5. Repositories and issues load.
 6. Create or edit an issue to verify write path.
 
+## 5. Docker container run on local machine
+
+1. server
+   - `docker build --no-cache --network=host -t nesohq-server:local ./server`
+   - `docker run --rm --env-file server/.env -p 3001:3001 nesohq-server:local`
+
+2. client
+   - `docker build --no-cache --network=host -t nesohq-client:local --build-arg NEXT_PUBLIC_API_URL=http://localhost:3001 ./client`
+   - `docker run --rm -p 3000:3000 --name nesohq-client nesohq-client:local`
+
 ## Common Setup Notes
 
 - If sign-in fails immediately, verify `GH_CLIENT_ID` and `GH_CLIENT_SECRET`.
 - If callback fails, verify OAuth app callback URL and `GH_REDIRECT_URI` alignment.
 - If `/api` calls fail with CORS errors, set `CORS_ORIGIN` to frontend origin.
 - `client/public/config.js` can override API base URL at runtime for deployed builds.
-

@@ -6,11 +6,11 @@ on:
       service:
         required: true
         type: string
-        description: 'Service name to build'
+        description: "Service name to build"
       should-build:
         required: true
         type: boolean
-        description: 'Whether to build this service'
+        description: "Whether to build this service"
     secrets:
       DOCKERHUB_USERNAME:
         required: false
@@ -25,11 +25,11 @@ jobs:
   build:
     runs-on: ubuntu-latest
     if: inputs.should-build
-    
+
     permissions:
       contents: read
       packages: write
-      
+
     steps:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
@@ -71,7 +71,6 @@ jobs:
             GITHUB_CLIENT_SECRET=${{ secrets.GH_CLIENT_SECRET }}
 
             GITHUB_REDIRECT_URI=https://tracker.nesohq.org/auth/callback
-
             CORS_ORIGIN=https://tracker.nesohq.org
 
       - name: 📝 Generate image summary
