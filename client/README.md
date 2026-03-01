@@ -13,16 +13,15 @@ Visit [http://localhost:3000](http://localhost:3000)
 
 ## Documentation
 
-All documentation has been moved to the [`docs/`](./docs/) folder:
+Project documentation is in the shared root [`docs/`](../docs/) folder:
 
-- **[Quick Start Guide](./docs/QUICKSTART.md)** - Get up and running in 3 steps
-- **[README](./docs/README.md)** - Full project documentation
-- **[Migration Guide](./docs/MIGRATION.md)** - Vite to Next.js migration details
-- **[Upgrade Steps](./docs/UPGRADE_STEPS.md)** - Step-by-step upgrade instructions
-- **[Architecture Overview](./docs/ARCHITECTURE.md)** - Before/after architecture comparison
-- **[Migration Summary](./docs/MIGRATION_SUMMARY.md)** - Technical migration details
-- **[Migration Complete](./docs/MIGRATION_COMPLETE.md)** - Migration completion checklist
-- **[Verification Checklist](./docs/VERIFICATION_CHECKLIST.md)** - Testing checklist
+- **[Docs Home](../docs/README.md)**
+- **[Quick Start](../docs/QUICKSTART.md)**
+- **[Product Guide](../docs/PRODUCT_GUIDE.md)**
+- **[Architecture](../docs/ARCHITECTURE.md)**
+- **[Technical Reference](../docs/TECHNICAL_REFERENCE.md)**
+- **[Engineering Practices](../docs/ENGINEERING_PRACTICES.md)**
+- **[Troubleshooting](../docs/TROUBLESHOOTING.md)**
 
 ## Tech Stack
 

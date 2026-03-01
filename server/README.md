@@ -2,6 +2,16 @@
 
 Express auth server for OAuth token exchange.
 
+## Documentation
+
+Project documentation is in the shared root [`docs/`](../docs/) folder:
+
+- **[Docs Home](../docs/README.md)**
+- **[Quick Start](../docs/QUICKSTART.md)**
+- **[Architecture](../docs/ARCHITECTURE.md)**
+- **[Technical Reference](../docs/TECHNICAL_REFERENCE.md)**
+- **[Troubleshooting](../docs/TROUBLESHOOTING.md)**
+
 ## Structure
 
 ```
