@@ -40,6 +40,7 @@ export function IssueList({
   const [loadMoreError, setLoadMoreError] = useState<string | null>(null);
   const [linkedPrWarning, setLinkedPrWarning] = useState<string | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const issuesRequestRef = useRef(0);
   const prBatchRef = useRef(0);
 
   useEffect(() => {
@@ -95,6 +96,7 @@ export function IssueList({
           })
         );
       } catch (error) {
+        if (prBatchRef.current !== batchId) return;
         failedRepos += 1;
         reportClientError({
           component: 'IssueList',
@@ -114,6 +116,8 @@ export function IssueList({
   }, []);
 
   const loadIssues = async (reset = false) => {
+    const requestId = ++issuesRequestRef.current;
+
     if (reset) {
       setLoading(true);
       setPage(1);
@@ -128,6 +132,7 @@ export function IssueList({
     try {
       const currentPage = reset ? 1 : page;
       const result = await getIssues(selectedRepo, stateFilter, debouncedSearch, currentPage, 30);
+      if (issuesRequestRef.current !== requestId) return;
 
       if (reset) {
         setIssues(result.issues);
@@ -143,6 +148,7 @@ export function IssueList({
 
       fetchLinkedPRsForIssues(result.issues);
     } catch (error) {
+      if (issuesRequestRef.current !== requestId) return;
       const message = getErrorMessage(error, 'Failed to load issues');
       reportClientError({
         component: 'IssueList',
@@ -164,6 +170,7 @@ export function IssueList({
         toast.error('Could not load more issues. Please try again.');
       }
     } finally {
+      if (issuesRequestRef.current !== requestId) return;
       setLoading(false);
       setLoadingMore(false);
     }

@@ -26,6 +26,8 @@ interface IssueDetailProps {
 export function IssueDetail({ issue, onClose, onUpdate, onDelete }: IssueDetailProps) {
   const [currentIssue, setCurrentIssue] = useState(issue);
   const currentIssueRef = useRef(issue);
+  const labelsRequestRef = useRef(0);
+  const linkedPrRequestRef = useRef(0);
   const [editingTitle, setEditingTitle] = useState(false);
   const [editingBody, setEditingBody] = useState(false);
   const [titleValue, setTitleValue] = useState(issue.title);
@@ -48,21 +50,28 @@ export function IssueDetail({ issue, onClose, onUpdate, onDelete }: IssueDetailP
   }, [currentIssue]);
 
   useEffect(() => {
+    labelsRequestRef.current += 1;
+    linkedPrRequestRef.current += 1;
     setCurrentIssue(issue);
     setTitleValue(issue.title);
     setBodyValue(issue.body);
+    setAvailableLabels([]);
     setEditingTitle(false);
     setEditingBody(false);
+    setLoadingPRs(false);
     setLabelsError(null);
     setLinkedPrsError(null);
   }, [issue]);
 
   const loadLabels = useCallback(async () => {
+    const requestId = ++labelsRequestRef.current;
     setLabelsError(null);
     try {
       const labels = await getLabels(repoFullName);
+      if (labelsRequestRef.current !== requestId) return;
       setAvailableLabels(labels);
     } catch (error) {
+      if (labelsRequestRef.current !== requestId) return;
       setAvailableLabels([]);
       const message = getErrorMessage(error, 'Failed to load labels');
       setLabelsError(message);
@@ -84,14 +93,17 @@ export function IssueDetail({ issue, onClose, onUpdate, onDelete }: IssueDetailP
   }, [loadLabels]);
 
   const loadLinkedPRs = useCallback(async () => {
+    const requestId = ++linkedPrRequestRef.current;
     setLoadingPRs(true);
     setLinkedPrsError(null);
     try {
       const prs = await getLinkedPRs(repoFullName, issueNumber);
+      if (linkedPrRequestRef.current !== requestId) return;
       const updated = { ...currentIssueRef.current, linked_prs: prs };
       setCurrentIssue(updated);
       onUpdate(updated);
     } catch (error) {
+      if (linkedPrRequestRef.current !== requestId) return;
       const message = getErrorMessage(error, 'Failed to load linked pull requests');
       setLinkedPrsError(message);
       reportClientError({
@@ -105,6 +117,7 @@ export function IssueDetail({ issue, onClose, onUpdate, onDelete }: IssueDetailP
         },
       });
     } finally {
+      if (linkedPrRequestRef.current !== requestId) return;
       setLoadingPRs(false);
     }
   }, [repoFullName, issueNumber, currentIssue.id, onUpdate]);

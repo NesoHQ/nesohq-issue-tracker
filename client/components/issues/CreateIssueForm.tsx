@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import type { Issue, Label, Repository } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -32,6 +32,7 @@ export function CreateIssueForm({ repositories, defaultRepoFullName, onClose, on
   const [labelsLoading, setLabelsLoading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const labelsRequestRef = useRef(0);
 
   useEffect(() => {
     const draft = localStorage.getItem(STORAGE_KEYS.ISSUE_DRAFT);
@@ -53,13 +54,27 @@ export function CreateIssueForm({ repositories, defaultRepoFullName, onClose, on
   }, [repositories]);
 
   useEffect(() => {
+    const requestId = ++labelsRequestRef.current;
     setSelectedLabels([]);
-    if (!selectedRepo) { setAvailableLabels([]); return; }
+    if (!selectedRepo) {
+      setAvailableLabels([]);
+      setLabelsLoading(false);
+      return;
+    }
     setLabelsLoading(true);
     getLabels(selectedRepo.full_name)
-      .then(setAvailableLabels)
-      .catch(() => setAvailableLabels([]))
-      .finally(() => setLabelsLoading(false));
+      .then((labels) => {
+        if (labelsRequestRef.current !== requestId) return;
+        setAvailableLabels(labels);
+      })
+      .catch(() => {
+        if (labelsRequestRef.current !== requestId) return;
+        setAvailableLabels([]);
+      })
+      .finally(() => {
+        if (labelsRequestRef.current !== requestId) return;
+        setLabelsLoading(false);
+      });
   }, [selectedRepo]);
 
   useEffect(() => {
