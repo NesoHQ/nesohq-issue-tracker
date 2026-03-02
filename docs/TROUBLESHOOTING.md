@@ -104,7 +104,7 @@ This page lists common runtime issues and practical fixes.
 
 ### Symptom
 
-- Recent PR link updates are not immediately visible
+- Recent PR link updates are not immediately visibl e
 
 ### Cause
 

@@ -16,7 +16,7 @@ Project documentation is in the shared root [`docs/`](../docs/) folder:
 
 ```
 server/
-├── index.ts           # Entry point – starts the server
+├── index.ts           # Entry point – starts the serve r
 ├── app.ts             # Express app setup (middleware, routes)
 ├── config/            # Configuration
 │   └── index.ts       # Env vars, paths, helpers

@@ -13,7 +13,7 @@ Visit [http://localhost:3000](http://localhost:3000)
 
 ## Documentation
 
-Project documentation is in the shared root [`docs/`](../docs/) folder:
+Project documentation is in the shared root [`docs/`](../docs/) folde r:
 
 - **[Docs Home](../docs/README.md)**
 - **[Quick Start](../docs/QUICKSTART.md)**
