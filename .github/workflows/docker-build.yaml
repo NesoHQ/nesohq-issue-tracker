@@ -54,7 +54,8 @@ jobs:
           registry: ${{ env.REGISTRY_GHCR }}
           image-prefix: ${{ env.IMAGE_PREFIX }}
 
-      - name: 🐳 Build and push Docker image
+      - name: 🐳 Build and push Docker image (client)
+        if: inputs.service == 'client'
         uses: docker/build-push-action@v5
         with:
           context: ./${{ inputs.service }}
@@ -64,14 +65,27 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          # Build only for amd64 for faster builds (add arm64 if needed)
           platforms: linux/amd64
           build-args: |
-            GITHUB_CLIENT_ID=${{ secrets.GH_CLIENT_ID }}
-            GITHUB_CLIENT_SECRET=${{ secrets.GH_CLIENT_SECRET }}
+            NEXT_PUBLIC_API_URL=${{ vars.NEXT_PUBLIC_API_URL }}
 
-            GITHUB_REDIRECT_URI=https://tracker.nesohq.org/auth/callback
-            CORS_ORIGIN=https://tracker.nesohq.org
+      - name: 🐳 Build and push Docker image (server)
+        if: inputs.service == 'server'
+        uses: docker/build-push-action@v5
+        with:
+          context: ./${{ inputs.service }}
+          file: ./${{ inputs.service }}/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          platforms: linux/amd64
+          build-args: |
+            GH_CLIENT_ID=${{ secrets.GH_CLIENT_ID }}
+            GH_CLIENT_SECRET=${{ secrets.GH_CLIENT_SECRET }}
+            GITHUB_REDIRECT_URI=${{ vars.GITHUB_REDIRECT_URI }}
+            CORS_ORIGIN=${{ vars.CORS_ORIGIN }}
 
       - name: 📝 Generate image summary
         run: |
