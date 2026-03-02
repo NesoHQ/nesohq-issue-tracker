@@ -84,7 +84,7 @@ jobs:
           build-args: |
             GH_CLIENT_ID=${{ secrets.GH_CLIENT_ID }}
             GH_CLIENT_SECRET=${{ secrets.GH_CLIENT_SECRET }}
-            GITHUB_REDIRECT_URI=${{ vars.GITHUB_REDIRECT_URI }}
+            GH_REDIRECT_URI=${{ vars.GH_REDIRECT_URI }}
             CORS_ORIGIN=${{ vars.CORS_ORIGIN }}
 
       - name: 📝 Generate image summary
