@@ -1,6 +1,6 @@
 # NesOHQ Issue Tracker - Client
 
-A Next.js application for managing GitHub issues across multiple repositories.
+A Next.js application for managing GitHub issues across multiple repositories .
 
 ## Quick Start
 
