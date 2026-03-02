@@ -1,6 +1,6 @@
 # Server
 
-Express auth server for OAuth token exchange .
+Express auth server for OAuth token exchange.
 
 ## Documentation
 
