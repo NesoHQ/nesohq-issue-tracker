@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import { ThemeProvider } from '@/components/providers/ThemeProvider';
 import '@/styles/globals.css';
+import { KrakensAnalytics } from '@/components/krakens-analytics';
 
 /**
  * Root layout - wraps all pages
@@ -50,6 +51,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning className={inter.variable}>
       <body>
+        <KrakensAnalytics />
         <ThemeProvider 
           attribute="class" 
           defaultTheme="system" 
