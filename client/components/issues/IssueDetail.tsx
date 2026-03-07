@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { MarkdownEditor } from './MarkdownEditor';
-import { CircleDot, Circle, GitPullRequest, ExternalLink, Edit2, Check, X as CloseIcon, Loader2, AlertCircle } from 'lucide-react';
+import { CircleDot, Circle, GitPullRequest, ExternalLink, Edit2, Check, X as CloseIcon, Loader2, AlertCircle, Copy } from 'lucide-react';
 import { formatRelativeDate, getContrastColor } from '@/lib/utils';
 import { getLabels, getLinkedPRs } from '@/app/actions/github';
 import { updateIssue } from '@/app/actions/issues';
@@ -281,6 +281,22 @@ export function IssueDetail({ issue, onClose, onUpdate, onDelete }: IssueDetailP
           <span className="text-sm text-muted-foreground">#{currentIssue.number}</span>
         </div>
         <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={async () => {
+              try {
+                await navigator.clipboard.writeText(currentIssue.html_url);
+                toast.success('Link copied to clipboard');
+              } catch {
+                toast.error('Failed to copy link');
+              }
+            }}
+            className="gap-2"
+          >
+            <Copy className="size-4" />
+            <span className="hidden sm:inline">Copy link</span>
+          </Button>
           <Button variant="ghost" size="sm" onClick={() => window.open(currentIssue.html_url, '_blank')} className="gap-2">
             <ExternalLink className="size-4" />
             <span className="hidden sm:inline">Open in GitHub</span>
