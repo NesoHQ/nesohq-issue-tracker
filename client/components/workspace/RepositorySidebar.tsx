@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useCallback, memo } from 'react';
+import { useState, useMemo, useCallback, memo, useEffect } from 'react';
 import type { Repository } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -37,7 +37,11 @@ export function RepositorySidebar({
   className,
 }: RepositorySidebarProps) {
   const [search, setSearch] = useState('');
-  const [pinnedIds, setPinnedIds] = useState<Set<string>>(loadPins);
+  const [pinnedIds, setPinnedIds] = useState<Set<string>>(() => new Set());
+
+  useEffect(() => {
+    setPinnedIds(loadPins());
+  }, []);
 
   const togglePin = useCallback((e: React.MouseEvent, repoId: string) => {
     e.stopPropagation();
